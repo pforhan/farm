@@ -1,0 +1,27 @@
+
+{
+    "name": "your-username/farm",
+    "description": "Digital Asset Management for game assets - Farm Project",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Your Name",
+            "email": "your.email@example.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.4",
+        "ext-mysqli": "*",
+        "ext-zip": "*",
+        "ext-gd": "*",
+        "ext-fileinfo": "*"
+    },
+    "autoload": {
+        "files": [
+            "src/lib/functions.php"
+        ]
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

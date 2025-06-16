@@ -1,0 +1,26 @@
+
+# .gitignore for Farm Digital Asset Manager
+
+# Configuration file (contains sensitive data)
+/config/config.php
+
+# Vendor directory (Composer dependencies)
+/vendor/
+
+# Uploaded files and generated previews
+/public/uploads/
+/public/previews/
+
+# Log and cache files
+/var/logs/
+/var/cache/
+
+# PHPStorm project files
+.idea/
+
+# VS Code project files
+.vscode/
+
+# Operating System files
+.DS_Store
+Thumbs.db

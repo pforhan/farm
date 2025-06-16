@@ -1,0 +1,1307 @@
+farm/config/config.php.dist
+
+<?php
+// Database Configuration (config.php)
+// Copy this file to config.php and update with your actual credentials.
+define('DB_HOST', 'your_db_host');
+define('DB_USER', 'your_db_user');
+define('DB_PASS', 'your_db_password');
+define('DB_NAME', 'your_db_name');
+
+// File System Configuration
+// Ensure these paths are absolute and writable by your web server.
+// These paths are relative to the project root for better portability.
+define('UPLOAD_DIR', __DIR__ . '/../public/uploads/'); // Absolute path, writable by PHP
+define('PREVIEW_DIR', __DIR__ . '/../public/previews/'); // Absolute path, writable by PHP
+define('MAX_FILE_SIZE', 20 * 1024 * 1024); // 20MB max upload size
+define('ALLOWED_TYPES', ['zip', 'png', 'jpg', 'jpeg', 'gif', 'wav', 'mp3', 'ogg', 'txt', 'md', 'html', 'json', 'xml']); // Added text-based file types
+
+
+farm/src/lib/functions.php
+
+<?php
+// src/lib/functions.php
+
+// Create database connection
+function connect_db() {
+    $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+    if ($conn->connect_error) {
+        die("Connection failed: " . $conn->connect_error);
+    }
+    return $conn;
+}
+
+// Basic Sanitization
+function sanitize_input($data) {
+    $data = trim($data);
+    $data = stripslashes($data);
+    $data = htmlspecialchars($data);
+    return $data;
+}
+
+// Function to generate a thumbnail (simplified)
+function generate_thumbnail($source, $destination, $width, $height) {
+    $supported_types = ['image/jpeg', 'image/png', 'image/gif'];
+     // Get the image type
+    $image_info = getimagesize($source);
+    if ($image_info === false) {
+        return false; // Not a valid image.
+    }
+    $mime_type = $image_info['mime'];
+
+    if (!in_array($mime_type, $supported_types)) {
+        return false;
+    }
+    switch ($mime_type) {
+        case 'image/jpeg':
+            $image = imagecreatefromjpeg($source);
+            break;
+        case 'image/png':
+            $image = imagecreatefrompng($source);
+            break;
+        case 'image/gif':
+            $image = imagecreatefromgif($source);
+            break;
+        default:
+            return false;
+    }
+
+
+    if (!$image) return false;
+
+    $thumb = imagecreatetruecolor($width, $height);
+    if (!$thumb) return false;
+
+    // Preserve transparency if possible
+    if ($mime_type === 'image/png' || $mime_type === 'image/gif') {
+        imagealphablending($thumb, false);
+        imagesavealpha($thumb, true);
+        $transparent = imagecolorallocatealpha($thumb, 255, 255, 255, 127);
+        imagefill($thumb, 0, 0, $transparent);
+    }
+
+    imagecopyresampled($thumb, $image, 0, 0, 0, 0, $width, $height, imagesx($image), imagesy($image));
+    // Determine the correct image type for saving
+    $file_extension = pathinfo($destination, PATHINFO_EXTENSION);
+     switch ($file_extension) {
+        case 'jpg':
+        case 'jpeg':
+             imagejpeg($thumb, $destination);
+             break;
+        case 'png':
+             imagepng($thumb, $destination);
+             break;
+        case 'gif':
+             imagegif($thumb, $destination);
+             break;
+        default:
+            imagedestroy($image);
+            imagedestroy($thumb);
+            return false;
+    }
+    imagedestroy($image);
+    imagedestroy($thumb);
+    return true;
+}
+
+// New helper function to get or create an ID for related entities (stores, authors, licenses, tags, projects)
+function get_or_create_id($table_name, $column_name, $value, $conn) {
+    if (empty($value)) {
+        return null; // Return null if value is empty, allows nullable foreign keys
+    }
+
+    // Sanitize the value for safe database query
+    $sanitized_value = $conn->real_escape_string($value);
+
+    $stmt = $conn->prepare("SELECT " . $table_name . "_id FROM " . $table_name . " WHERE " . $column_name . " = ?");
+    if ($stmt === false) {
+        error_log("Prepare failed for get_or_create_id ($table_name): " . $conn->error);
+        return null;
+    }
+    $stmt->bind_param("s", $sanitized_value);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $stmt->close();
+        return $row[$table_name . '_id'];
+    } else {
+        $stmt->close();
+        $stmt = $conn->prepare("INSERT INTO " . $table_name . " (" . $column_name . ") VALUES (?)");
+        if ($stmt === false) {
+            error_log("Prepare failed for insert ($table_name): " . $conn->error);
+            return null;
+        }
+        $stmt->bind_param("s", $sanitized_value);
+        if ($stmt->execute()) {
+            $new_id = $conn->insert_id;
+            $stmt->close();
+            return $new_id;
+        } else {
+            error_log("Insert failed for ($table_name): " . $stmt->error);
+            $stmt->close();
+            return null;
+        }
+    }
+}
+
+// Function to associate tags with an asset
+function associate_tags_with_asset($asset_id, $tags_string, $conn) {
+    $tags = array_filter(array_map('trim', explode(',', $tags_string)));
+    foreach ($tags as $tag_name) {
+        if (empty($tag_name)) continue; // Skip empty tag names
+
+        $tag_id = get_or_create_id('tags', 'tag_name', $tag_name, $conn);
+        if ($tag_id) {
+            // Check if association already exists to prevent duplicates
+            $stmt = $conn->prepare("SELECT * FROM asset_tags WHERE asset_id = ? AND tag_id = ?");
+            if ($stmt === false) {
+                error_log("Prepare failed for tag association check: " . $conn->error);
+                continue;
+            }
+            $stmt->bind_param("ii", $asset_id, $tag_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            if ($result->num_rows == 0) {
+                $stmt->close();
+                $stmt = $conn->prepare("INSERT INTO asset_tags (asset_id, tag_id) VALUES (?, ?)");
+                if ($stmt === false) {
+                    error_log("Prepare failed for tag association insert: " . $conn->error);
+                    continue;
+                }
+                $stmt->bind_param("ii", $asset_id, $tag_id);
+                if (!$stmt->execute()) {
+                    error_log("Error associating tag ($tag_name) with asset ($asset_id): " . $stmt->error);
+                }
+            }
+            $stmt->close();
+        }
+    }
+}
+
+// Function to associate projects with an asset
+function associate_projects_with_asset($asset_id, $projects_string, $conn) {
+    $projects = array_filter(array_map('trim', explode(',', $projects_string)));
+    foreach ($projects as $project_name) {
+        if (empty($project_name)) continue; // Skip empty project names
+
+        $project_id = get_or_create_id('projects', 'project_name', $project_name, $conn);
+        if ($project_id) {
+            // Check if association already exists to prevent duplicates
+            $stmt = $conn->prepare("SELECT * FROM asset_projects WHERE asset_id = ? AND project_id = ?");
+            if ($stmt === false) {
+                error_log("Prepare failed for project association check: " . $conn->error);
+                continue;
+            }
+            $stmt->bind_param("ii", $asset_id, $project_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            if ($result->num_rows == 0) {
+                $stmt->close();
+                $stmt = $conn->prepare("INSERT INTO asset_projects (asset_id, project_id) VALUES (?, ?)");
+                if ($stmt === false) {
+                    error_log("Prepare failed for project association insert: " . $conn->error);
+                    continue;
+                }
+                $stmt->bind_param("ii", $asset_id, $project_id);
+                if (!$stmt->execute()) {
+                    error_log("Error associating project ($project_name) with asset ($asset_id): " . $stmt->error);
+                }
+            }
+            $stmt->close();
+        }
+    }
+}
+
+// Updated process_zip_file to handle subdirectory tags and pass base tags
+function process_zip_file($file_path, $asset_id, $conn, $base_tags_string = '') {
+    $zip = new ZipArchive;
+    if ($zip->open($file_path) === TRUE) {
+        $num_files = $zip->count();
+        $asset_upload_dir = UPLOAD_DIR . $asset_id . '/';
+        if (!is_dir($asset_upload_dir)) {
+            mkdir($asset_upload_dir, 0777, true);
+        }
+
+        // Apply base tags to the asset (e.g., from original zip filename, source URL)
+        if (!empty($base_tags_string)) {
+            associate_tags_with_asset($asset_id, $base_tags_string, $conn);
+        }
+
+        for ($i = 0; $i < $num_files; $i++) {
+            $entry_name = $zip->getNameIndex($i);
+            $entry_size = $zip->statIndex($i)['size'];
+
+            if (substr($entry_name, -1) == '/') { // Skip directories
+                continue;
+            }
+
+            $file_content = $zip->getFromIndex($i);
+            $target_path = $asset_upload_dir . $entry_name;
+            $target_dir = dirname($target_path);
+            if (!is_dir($target_dir)) {
+                mkdir($target_dir, 0777, true);
+            }
+
+            if ($file_content !== false && file_put_contents($target_path, $file_content) !== false) {
+                $file_type = mime_content_type($target_path);
+                $preview_path = null;
+
+                // Handle image previews
+                if (strpos($file_type, 'image/') === 0) {
+                    $thumb_filename = basename($entry_name, '.' . pathinfo($entry_name, PATHINFO_EXTENSION)) . '.jpg';
+                    $thumb_path = PREVIEW_DIR . $asset_id . '_' . $thumb_filename;
+                    if (generate_thumbnail($target_path, $thumb_path, 200, 200)) {
+                         $preview_path = '/previews/' . $asset_id . '_' . $thumb_filename;
+                    }
+                }
+                // Text file handling: Just store the file, the asset_details.php template handles download link.
+                // The ALLOWED_TYPES config now includes common text formats.
+
+                // Store file details in database
+                $stmt = $conn->prepare("INSERT INTO files (asset_id, file_name, file_path, file_size, file_type, preview_path) VALUES (?, ?, ?, ?, ?, ?)");
+                if ($stmt === false) {
+                    error_log("Prepare failed for file insert: " . $conn->error);
+                    continue;
+                }
+                $stmt->bind_param("isssis", $asset_id, $entry_name, $target_path, $entry_size, $file_type, $preview_path);
+                if (!$stmt->execute()) {
+                    error_log("Error inserting file info for $entry_name: " . $stmt->error);
+                }
+                $stmt->close();
+
+                // Generate tags from directory structure within the zip
+                $relative_dir = dirname($entry_name);
+                if ($relative_dir != '.' && $relative_dir != '') { // Ensure not root directory or empty
+                    $dir_parts = array_filter(explode('/', $relative_dir));
+                    foreach ($dir_parts as $part) {
+                        associate_tags_with_asset($asset_id, $part, $conn);
+                    }
+                }
+
+            } else {
+                error_log("Failed to extract or write file: " . $entry_name);
+            }
+        }
+        $zip->close();
+        unlink($file_path); // Delete the original zip file after extraction
+        return true;
+    } else {
+        error_log("Failed to open zip file: " . $file_path);
+        return false;
+    }
+}
+
+
+// Function to handle file uploads (now creates the asset record too)
+function handle_file_upload($file, $asset_details, $conn) {
+    // Extract individual asset details
+    $asset_name = $asset_details['asset_name'];
+    $link = $asset_details['link'];
+    $store_name = $asset_details['store_name'];
+    $author_name = $asset_details['author_name'];
+    $license_name = $asset_details['license_name'];
+    $tags_string = $asset_details['tags_string'];
+    $projects_string = $asset_details['projects_string'];
+
+    // Get or create IDs for related entities
+    $store_id = get_or_create_id('stores', 'store_name', $store_name, $conn);
+    $author_id = get_or_create_id('authors', 'author_name', $author_name, $conn);
+    $license_id = get_or_create_id('licenses', 'license_name', $license_name, $conn);
+
+    // Insert the asset record first
+    $stmt = $conn->prepare("INSERT INTO assets (asset_name, link, store_id, author_id, license_id) VALUES (?, ?, ?, ?, ?)");
+    if ($stmt === false) {
+        error_log("Prepare failed for asset insert: " . $conn->error);
+        return "Error preparing asset insert.";
+    }
+    $stmt->bind_param("ssiii", $asset_name, $link, $store_id, $author_id, $license_id);
+    if (!$stmt->execute()) {
+        error_log("Error inserting asset: " . $stmt->error);
+        $stmt->close();
+        return "Error creating asset record: " . $stmt->error;
+    }
+    $asset_id = $conn->insert_id;
+    $stmt->close();
+
+    // Associate initial tags and projects with the new asset
+    associate_tags_with_asset($asset_id, $tags_string, $conn);
+    associate_projects_with_asset($asset_id, $projects_string, $conn);
+
+    if ($file['error'] == 0) {
+        $file_name = basename($file['name']);
+        $file_size = $file['size'];
+        $file_tmp = $file['tmp_name'];
+        $file_type = mime_content_type($file_tmp);
+        $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+
+        if ($file_size > MAX_FILE_SIZE) {
+            return "File too large (max " . (MAX_FILE_SIZE / (1024 * 1024)) . "MB)";
+        }
+
+        if (!in_array($file_ext, ALLOWED_TYPES)) {
+            return "Invalid file type: .$file_ext";
+        }
+
+        $target_dir = UPLOAD_DIR . $asset_id . '/';
+        if (!is_dir($target_dir)) {
+            mkdir($target_dir, 0777, true);
+        }
+        $target_path = $target_dir . $file_name;
+
+        if (move_uploaded_file($file_tmp, $target_path)) {
+            // Generate tags from the main uploaded filename (e.g., "my_texture_pack.zip" -> "my_texture_pack")
+            $base_file_tags = explode('.', basename($file_name))[0];
+            // Add domain from link as a tag if available
+            if (!empty($link)) {
+                $host = parse_url($link, PHP_URL_HOST);
+                if ($host) {
+                    $base_file_tags .= ',' . $host;
+                }
+            }
+            associate_tags_with_asset($asset_id, $base_file_tags, $conn);
+
+
+            if ($file_ext == 'zip') {
+                if(process_zip_file($target_path, $asset_id, $conn, $tags_string . ',' . $base_file_tags)){ // Pass initial and file-derived tags to zip processor
+                    return "ZIP file extracted and processed for Asset ID: " . $asset_id;
+                } else {
+                    return "ZIP file extraction failed for Asset ID: " . $asset_id;
+                }
+            } else { // Handle single file upload
+                $preview_path = null;
+                if (strpos($file_type, 'image/') === 0) {
+                    $thumb_filename = basename($file_name, '.' . pathinfo($file_name, PATHINFO_EXTENSION)) . '.jpg';
+                    $thumb_path = PREVIEW_DIR . $asset_id . '_' . $thumb_filename;
+                    if (generate_thumbnail($target_path, $thumb_path, 200, 200)) {
+                        $preview_path = '/previews/' . $asset_id . '_' . $thumb_filename;
+                    }
+                }
+
+                $stmt = $conn->prepare("INSERT INTO files (asset_id, file_name, file_path, file_size, file_type, preview_path) VALUES (?, ?, ?, ?, ?, ?)");
+                if ($stmt === false) {
+                    error_log("Prepare failed for file insert: " . $conn->error);
+                    return "Error preparing file insert.";
+                }
+                $stmt->bind_param("isssis", $asset_id, $file_name, $target_path, $file_size, $file_type, $preview_path);
+
+                if ($stmt->execute()) {
+                    return "File uploaded and details saved for Asset ID: " . $asset_id;
+                } else {
+                    error_log("Database insertion failed for file: " . $stmt->error);
+                    return "File uploaded, but database entry failed: " . $stmt->error;
+                }
+                $stmt->close();
+            }
+        } else {
+            return "File upload failed";
+        }
+    } else {
+        return "File upload error: " . $file['error'];
+    }
+}
+
+// Get file details, used in asset display
+function get_file_details($asset_id, $conn) {
+    $file_details = array();
+    $stmt = $conn->prepare("SELECT file_name, file_path, file_size, file_type, preview_path FROM files WHERE asset_id = ?");
+    $stmt->bind_param("i", $asset_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $file_details[] = $row;
+        }
+    }
+    $stmt->close();
+    return $file_details;
+}
+
+// Get tag details for an asset
+function get_tag_details($asset_id, $conn) {
+    $tag_details = array();
+    $stmt = $conn->prepare("SELECT t.tag_name FROM tags t JOIN asset_tags at ON t.tag_id = at.tag_id WHERE at.asset_id = ?");
+    $stmt->bind_param("i", $asset_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $tag_details[] = $row['tag_name'];
+        }
+    }
+    $stmt->close();
+    return $tag_details;
+}
+
+// Get project details for an asset.
+function get_project_details($asset_id, $conn){
+    $project_details = array();
+    $stmt = $conn->prepare("SELECT p.project_name FROM projects p JOIN asset_projects ap ON p.project_id = ap.project_id WHERE ap.asset_id = ?");
+    $stmt->bind_param("i", $asset_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $project_details[] = $row['project_name'];
+        }
+    }
+    $stmt->close();
+    return $project_details;
+}
+
+// Placeholder: Get all assets
+function get_all_assets($conn) {
+    $assets = [];
+    $sql = "SELECT asset_id, asset_name, link FROM assets ORDER BY asset_id DESC LIMIT 20"; // Example: get latest 20 assets
+    $result = $conn->query($sql);
+    if ($result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $assets[] = $row;
+        }
+    }
+    return $assets;
+}
+
+// Placeholder: Search assets
+function search_assets($conn, $query) {
+    $search_results = [];
+    $search_query = "%" . $conn->real_escape_string($query) . "%";
+
+    // Search by asset name
+    $sql = "SELECT DISTINCT a.asset_id, a.asset_name, a.link FROM assets a WHERE a.asset_name LIKE '$search_query'";
+    $result = $conn->query($sql);
+    if ($result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $search_results[$row['asset_id']] = $row; // Use asset_id as key to prevent duplicates
+        }
+    }
+
+    // Search by tag name
+    $sql_tags = "SELECT DISTINCT a.asset_id, a.asset_name, a.link FROM assets a
+                 JOIN asset_tags at ON a.asset_id = at.asset_id
+                 JOIN tags t ON at.tag_id = t.tag_id
+                 WHERE t.tag_name LIKE '$search_query'";
+    $result_tags = $conn->query($sql_tags);
+    if ($result_tags->num_rows > 0) {
+        while ($row = $result_tags->fetch_assoc()) {
+            $search_results[$row['asset_id']] = $row;
+        }
+    }
+
+    // Search by file type (e.g., 'image/png', 'audio/mp3', 'text/plain')
+    $sql_file_type = "SELECT DISTINCT a.asset_id, a.asset_name, a.link FROM assets a
+                      JOIN files f ON a.asset_id = f.asset_id
+                      WHERE f.file_type LIKE '$search_query'";
+    $result_file_type = $conn->query($sql_file_type);
+    if ($result_file_type->num_rows > 0) {
+        while ($row = $result_file_type->fetch_assoc()) {
+            $search_results[$row['asset_id']] = $row;
+        }
+    }
+
+    // Convert to indexed array for templates
+    return array_values($search_results);
+}
+
+
+// Placeholder: Get asset details
+function get_asset_details($asset_id, $conn) {
+    $asset_details = null;
+    $stmt = $conn->prepare("SELECT a.asset_id, a.asset_name, a.link, s.store_name, auth.author_name, l.license_name
+                            FROM assets a
+                            LEFT JOIN stores s ON a.store_id = s.store_id
+                            LEFT JOIN authors auth ON a.author_id = auth.author_id
+                            LEFT JOIN licenses l ON a.license_id = l.license_id
+                            WHERE a.asset_id = ?");
+    $stmt->bind_param("i", $asset_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $asset_details = $result->fetch_assoc();
+    }
+    $stmt->close();
+    return $asset_details;
+}
+
+farm/src/templates/upload_form.php
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo PROJECT_NAME; ?> - Upload</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <h1><?php echo PROJECT_NAME; ?> - Upload New Asset</h1>
+    <h2><?php echo PROJECT_ACRONYM; ?></h2>
+
+    <?php if (isset($message) && !empty($message)) { ?>
+        <p style="color: green; font-weight: bold;"><?php echo htmlspecialchars($message); ?></p>
+    <?php } ?>
+
+    <form action="index.php?action=upload" method="post" enctype="multipart/form-data">
+        <label for="asset_name">Asset Name:</label>
+        <input type="text" name="asset_name" id="asset_name" required><br><br>
+
+        <label for="link">Source URL (Link):</label>
+        <input type="url" name="link" id="link" placeholder="http://example.com/source"><br><br>
+
+        <label for="store_name">Store:</label>
+        <input type="text" name="store_name" id="store_name" placeholder="e.g., Unity Asset Store"><br><br>
+
+        <label for="author_name">Author:</label>
+        <input type="text" name="author_name" id="author_name" placeholder="e.g., Jane Doe"><br><br>
+
+        <label for="license_name">License:</label>
+        <input type="text" name="license_name" id="license_name" placeholder="e.g., MIT, Royalty-Free"><br><br>
+
+        <label for="tags">Initial Tags (comma-separated):</label>
+        <input type="text" name="tags" id="tags" placeholder="e.g., 2D, character, pixelart"><br><br>
+
+        <label for="projects">Projects (comma-separated):</label>
+        <input type="text" name="projects" id="projects" placeholder="e.g., MyGameTitle, RPG"><br><br>
+
+        Select file to upload:
+        <input type="file" name="file" id="file" required>
+        <input type="submit" value="Upload Asset" name="submit">
+    </form>
+    <p>
+        <a href="index.php?action=browse">Browse Assets</a> |
+        <a href="index.php?action=search">Search Assets</a>
+    </p>
+    <script src="js/scripts.js"></script>
+</body>
+</html>
+
+farm/src/templates/browse_assets.php
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo PROJECT_NAME; ?> - Browse Assets</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <h1><?php echo PROJECT_NAME; ?> - Browse Assets</h1>
+    <h2><?php echo PROJECT_ACRONYM; ?></h2>
+
+    <p>
+        <a href="index.php?action=upload">Upload New Asset</a> |
+        <a href="index.php?action=search">Search Assets</a>
+    </p>
+
+    <?php if (!empty($assets)): ?>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Link</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($assets as $asset): ?>
+                    <tr>
+                        <td><?php echo htmlspecialchars($asset['asset_id']); ?></td>
+                        <td><?php echo htmlspecialchars($asset['asset_name']); ?></td>
+                        <td>
+                            <?php if (!empty($asset['link'])): ?>
+                                <a href="<?php echo htmlspecialchars($asset['link']); ?>" target="_blank">View Link</a>
+                            <?php else: ?>
+                                N/A
+                            <?php endif; ?>
+                        </td>
+                        <td><a href="index.php?action=asset_details&id=<?php echo $asset['asset_id']; ?>">Details</a></td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    <?php else: ?>
+        <p>No assets found. Start by <a href="index.php?action=upload">uploading one</a>!</p>
+    <?php endif; ?>
+
+    <script src="js/scripts.js"></script>
+</body>
+</html>
+
+farm/src/templates/search_results.php
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo PROJECT_NAME; ?> - Search Results</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <h1><?php echo PROJECT_NAME; ?> - Search Results</h1>
+    <h2><?php echo PROJECT_ACRONYM; ?></h2>
+
+    <p>
+        <a href="index.php?action=browse">Back to Browse</a> |
+        <a href="index.php?action=upload">Upload New Asset</a>
+    </p>
+
+    <form action="index.php" method="get">
+        <input type="hidden" name="action" value="search">
+        <label for="query">Search:</label>
+        <input type="text" id="query" name="query" value="<?php echo htmlspecialchars($_GET['query'] ?? ''); ?>" placeholder="Enter name, tag, type, or size (e.g., 512x512)">
+        <input type="submit" value="Search">
+    </form>
+
+    <h3>Search Query: "<?php echo htmlspecialchars($_GET['query'] ?? ''); ?>"</h3>
+
+    <?php if (!empty($search_results)): ?>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Link</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($search_results as $asset): ?>
+                    <tr>
+                        <td><?php echo htmlspecialchars($asset['asset_id']); ?></td>
+                        <td><?php echo htmlspecialchars($asset['asset_name']); ?></td>
+                        <td>
+                            <?php if (!empty($asset['link'])): ?>
+                                <a href="<?php echo htmlspecialchars($asset['link']); ?>" target="_blank">View Link</a>
+                            <?php else: ?>
+                                N/A
+                            <?php endif; ?>
+                        </td>
+                        <td><a href="index.php?action=asset_details&id=<?php echo $asset['asset_id']; ?>">Details</a></td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    <?php else: ?>
+        <p>No assets found matching your search query.</p>
+    <?php endif; ?>
+
+    <script src="js/scripts.js"></script>
+</body>
+</html>
+
+farm/src/templates/asset_details.php
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo PROJECT_NAME; ?> - Asset Details</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <h1><?php echo PROJECT_NAME; ?> - Asset Details</h1>
+    <h2><?php echo PROJECT_ACRONYM; ?></h2>
+
+    <p>
+        <a href="index.php?action=browse">Back to Browse</a> |
+        <a href="index.php?action=upload">Upload New Asset</a> |
+        <a href="index.php?action=search">Search Assets</a>
+    </p>
+
+    <?php if (!empty($asset_details)): ?>
+        <h3>Asset: <?php echo htmlspecialchars($asset_details['asset_name']); ?> (ID: <?php echo htmlspecialchars($asset_details['asset_id']); ?>)</h3>
+        <ul>
+            <li><strong>Store:</strong> <?php echo htmlspecialchars($asset_details['store_name'] ?? 'N/A'); ?></li>
+            <li><strong>Author:</strong> <?php echo htmlspecialchars($asset_details['author_name'] ?? 'N/A'); ?></li>
+            <li><strong>License:</strong> <?php echo htmlspecialchars($asset_details['license_name'] ?? 'N/A'); ?></li>
+            <li><strong>Link:</strong>
+                <?php if (!empty($asset_details['link'])): ?>
+                    <a href="<?php echo htmlspecialchars($asset_details['link']); ?>" target="_blank"><?php echo htmlspecialchars($asset_details['link']); ?></a>
+                <?php else: ?>
+                    N/A
+                <?php endif; ?>
+            </li>
+            <li><strong>Tags:</strong> <?php echo empty($tag_details) ? 'None' : implode(', ', array_map('htmlspecialchars', $tag_details)); ?></li>
+            <li><strong>Projects:</strong> <?php echo empty($project_details) ? 'None' : implode(', ', array_map('htmlspecialchars', $project_details)); ?></li>
+        </ul>
+
+        <h4>Files:</h4>
+        <?php if (!empty($file_details)): ?>
+            <ul>
+                <?php foreach ($file_details as $file):
+                    $public_file_path = '/uploads/' . htmlspecialchars($asset_details['asset_id']) . '/' . htmlspecialchars($file['file_name']);
+                ?>
+                    <li>
+                        <strong>Name:</strong> <?php echo htmlspecialchars($file['file_name']); ?><br>
+                        <strong>Type:</strong> <?php echo htmlspecialchars($file['file_type']); ?><br>
+                        <strong>Size:</strong> <?php echo round($file['file_size'] / 1024 / 1024, 2); ?> MB<br>
+                        <?php if (!empty($file['preview_path']) && strpos($file['file_type'], 'image/') === 0): ?>
+                            <img src="<?php echo htmlspecialchars($file['preview_path']); ?>" alt="Preview" style="max-width: 200px; border-radius: 8px;">
+                            <br>
+                        <?php elseif (strpos($file['file_type'], 'audio/') === 0): ?>
+                            <audio controls style="width: 100%; max-width: 300px;">
+                                <source src="<?php echo $public_file_path; ?>" type="<?php echo htmlspecialchars($file['file_type']); ?>">
+                                Your browser does not support the audio element.
+                            </audio>
+                            <br>
+                        <?php elseif (strpos($file['file_type'], 'text/') === 0 || strpos($file['file_type'], 'application/json') === 0 || strpos($file['file_type'], 'application/xml') === 0): ?>
+                            <!-- For text files, we'll just show the download link for now -->
+                            <p>Text file. Click download to view.</p>
+                        <?php endif; ?>
+                        <a href="<?php echo $public_file_path; ?>" download>Download File</a>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php else: ?>
+            <p>No files associated with this asset.</p>
+        <?php endif; ?>
+
+    <?php else: ?>
+        <p>Asset not found.</p>
+    <?php endif; ?>
+
+    <script src="js/scripts.js"></script>
+</body>
+</html>
+
+farm/src/index.php
+
+<?php
+// Include the configuration file (outside web root)
+require_once '../config/config.php';
+
+// Include the functions file
+require_once 'lib/functions.php';
+
+session_start();
+
+$conn = connect_db();
+
+define('PROJECT_NAME', 'Farm');
+define('PROJECT_ACRONYM', 'Files, Assets, Resources, Metadata');
+
+$action = isset($_GET['action']) ? $_GET['action'] : 'upload';
+
+switch ($action) {
+    case 'upload':
+        $message = '';
+        if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['file'])) {
+            $asset_details_input = [
+                'asset_name'    => sanitize_input($_POST['asset_name'] ?? ''),
+                'link'          => sanitize_input($_POST['link'] ?? ''),
+                'store_name'    => sanitize_input($_POST['store_name'] ?? ''),
+                'author_name'   => sanitize_input($_POST['author_name'] ?? ''),
+                'license_name'  => sanitize_input($_POST['license_name'] ?? ''),
+                'tags_string'   => sanitize_input($_POST['tags'] ?? ''),
+                'projects_string' => sanitize_input($_POST['projects'] ?? '')
+            ];
+            $upload_result = handle_file_upload($_FILES['file'], $asset_details_input, $conn);
+            $message = $upload_result;
+        }
+        include 'templates/upload_form.php';
+        break;
+    case 'browse':
+        $assets = get_all_assets($conn);
+        include 'templates/browse_assets.php';
+        break;
+    case 'search':
+        $search_results = search_assets($conn, $_GET['query'] ?? '');
+        include 'templates/search_results.php';
+        break;
+    case 'asset_details':
+        $asset_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+        if ($asset_id > 0) {
+            $asset_details = get_asset_details($asset_id, $conn);
+            $file_details = get_file_details($asset_id, $conn);
+            $tag_details = get_tag_details($asset_id, $conn);
+            $project_details = get_project_details($asset_id, $conn);
+            include 'templates/asset_details.php';
+        } else {
+            echo "Invalid Asset ID";
+        }
+        break;
+    default:
+        echo "Invalid action.";
+}
+
+$conn->close();
+
+farm/public/css/styles.css
+
+/* public/css/styles.css */
+
+body {
+    font-family: 'Inter', sans-serif;
+    line-height: 1.6;
+    margin: 20px;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+h1, h2, h3, h4 {
+    color: #0056b3;
+}
+
+form {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+input[type="text"], input[type="url"], input[type="file"], input[type="submit"] {
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    width: calc(100% - 22px); /* Adjust for padding and border */
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+}
+
+input[type="submit"] {
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.3s ease;
+    width: auto; /* Revert width for submit button */
+    padding: 10px 20px;
+}
+
+input[type="submit"]:hover {
+    background-color: #0056b3;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    background-color: #e9ecef;
+    color: #333;
+}
+
+tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+
+ul {
+    list-style: none;
+    padding: 0;
+}
+
+ul li {
+    background: #fff;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+farm/public/js/scripts.js
+
+// public/js/scripts.js
+// This file can be used for any client-side interactivity.
+// For now, it's a placeholder.
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Farm Digital Asset Manager - Client-side scripts loaded.');
+
+    // Example: Add a simple form submission message
+    const uploadForm = document.querySelector('form');
+    if (uploadForm) {
+        uploadForm.addEventListener('submit', function() {
+            // You could add a loading spinner or disable the submit button here
+            console.log('Form submitted!');
+        });
+    }
+});
+
+
+farm/docs/database.sql
+
+CREATE TABLE stores (
+    store_id INT AUTO_INCREMENT PRIMARY KEY,
+    store_name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE licenses (
+    license_id INT AUTO_INCREMENT PRIMARY KEY,
+    license_name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE authors (
+    author_id INT AUTO_INCREMENT PRIMARY KEY,
+    author_name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE tags (
+    tag_id INT AUTO_INCREMENT PRIMARY KEY,
+    tag_name VARCHAR(255) NOT NULL UNIQUE KEY -- Tags should be unique
+);
+
+CREATE TABLE projects (
+    project_id INT AUTO_INCREMENT PRIMARY KEY,
+    project_name VARCHAR(255) NOT NULL UNIQUE KEY -- Projects should be unique
+);
+
+CREATE TABLE assets (
+    asset_id INT AUTO_INCREMENT PRIMARY KEY,
+    store_id INT,
+    link VARCHAR(255),
+    author_id INT,
+    license_id INT,
+    asset_name VARCHAR(255) NOT NULL,
+    FOREIGN KEY (store_id) REFERENCES stores(store_id),
+    FOREIGN KEY (author_id) REFERENCES authors(author_id),
+    FOREIGN KEY (license_id) REFERENCES licenses(license_id)
+);
+
+CREATE TABLE files (
+    file_id INT AUTO_INCREMENT PRIMARY KEY,
+    asset_id INT,
+    file_name VARCHAR(255) NOT NULL,
+    file_path VARCHAR(255) NOT NULL,
+    file_size INT NOT NULL,
+    file_type VARCHAR(255) NOT NULL,
+    preview_path VARCHAR(255), -- For storing the path to the generated thumbnail
+    FOREIGN KEY (asset_id) REFERENCES assets(asset_id)
+);
+
+CREATE TABLE asset_tags (
+    asset_id INT,
+    tag_id INT,
+    PRIMARY KEY (asset_id, tag_id),
+    FOREIGN KEY (asset_id) REFERENCES assets(asset_id),
+    FOREIGN KEY (tag_id) REFERENCES tags(tag_id)
+);
+
+CREATE TABLE asset_projects (
+    asset_id INT,
+    project_id INT,
+    PRIMARY KEY (asset_id, project_id),
+    FOREIGN KEY (asset_id) REFERENCES assets(asset_id),
+    FOREIGN KEY (project_id) REFERENCES projects(project_id)
+);
+
+farm/install.sh
+
+#!/bin/bash
+
+# Script to install the Farm Digital Asset Manager
+
+# Stop on first error
+set -e
+
+# Check for required commands
+command -v composer >/dev/null 2>&1 || { echo >&2 "Composer is required.  Please install it: https://getcomposer.org"; exit 1; }
+command -v mysql >/dev/null 2>&1 || { echo >&2 "MySQL client is required."; exit 1; }
+
+# Define directories
+APP_DIR="$PWD"  # The current directory
+CONFIG_DIR="$APP_DIR/config"
+PUBLIC_DIR="$APP_DIR/public"
+VAR_DIR="$APP_DIR/var"
+
+# Check if the script is being run in the correct directory
+if [ ! -d "$CONFIG_DIR" ] || [ ! -d "$APP_DIR/src" ] || [ ! -d "$PUBLIC_DIR" ]; then
+  echo "Error: This script must be run in the project's root directory."
+  echo "Please navigate to the project's root directory and try again."
+  exit 1
+fi
+
+# Check if config.php exists, if so, prompt to overwrite or skip
+if [ -f "$CONFIG_DIR/config.php" ]; then
+  read -p "config.php already exists. Overwrite? (y/n) " overwrite
+  if [[ "$overwrite" != "y" ]]; then
+    echo "Skipping config.php creation."
+  else
+    echo "Overwriting config.php"
+    cp "$CONFIG_DIR/config.php.dist" "$CONFIG_DIR/config.php"
+  fi
+else
+    # Copy the configuration template
+    echo "Creating config.php"
+    cp "$CONFIG_DIR/config.php.dist" "$CONFIG_DIR/config.php"
+fi
+
+# Prompt for database details and update config.php
+echo "Setting up database configuration..."
+read -p "Enter database host (default: localhost): " DB_HOST
+DB_HOST=${DB_HOST:-"localhost"} #default
+read -p "Enter database name: " DB_NAME
+read -p "Enter database user: " DB_USER
+read -sp "Enter database password: " DB_PASS
+echo "" # Add a newline
+
+# Update the config.php file
+sed -i "s/your_db_host/$DB_HOST/g" "$CONFIG_DIR/config.php"
+sed -i "s/your_db_name/$DB_NAME/g" "$CONFIG_DIR/config.php"
+sed -i "s/your_db_user/$DB_USER/g" "$CONFIG_DIR/config.php"
+sed -i "s/your_db_password/$(echo "$DB_PASS" | sed 's/[\\\/&]/\\&/g')/g" "$CONFIG_DIR/config.php" #escape
+
+# Create the uploads and previews directories and set permissions
+echo "Creating and setting permissions for uploads and previews directories..."
+mkdir -p "$PUBLIC_DIR/uploads"
+mkdir -p "$PUBLIC_DIR/previews"
+chmod -R 0777 "$PUBLIC_DIR/uploads" # Make them writable by the web server
+chmod -R 0777 "$PUBLIC_DIR/previews"
+
+# Create the var directories
+echo "Creating var directories..."
+mkdir -p "$VAR_DIR/logs"
+mkdir -p "$VAR_DIR/cache"
+
+# Install Composer dependencies
+echo "Installing Composer dependencies..."
+composer install --no-interaction --optimize-autoloader --working-dir="$APP_DIR"
+
+# Set up the database schema (import SQL)
+echo "Setting up the database schema..."
+read -p "Enter path to the database schema file (default: docs/database.sql): " SCHEMA_FILE
+SCHEMA_FILE=${SCHEMA_FILE:-"$APP_DIR/docs/database.sql"}
+if [ ! -f "$SCHEMA_FILE" ]; then
+  echo "Error: Database schema file not found at $SCHEMA_FILE"
+  exit 1
+fi
+mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$SCHEMA_FILE"
+
+echo "Installation complete!"
+echo " "
+echo "Next steps:"
+echo "1.  Edit the config/config.php file to customize your installation (if you did not do so above)."
+echo "2.  Configure your web server to point to the public directory ($PUBLIC_DIR)."
+echo "3.  Browse to your website."
+exit 0
+
+farm/.gitignore
+
+# .gitignore for Farm Digital Asset Manager
+
+# Configuration file (contains sensitive data)
+/config/config.php
+
+# Vendor directory (Composer dependencies)
+/vendor/
+
+# Uploaded files and generated previews
+/public/uploads/
+/public/previews/
+
+# Log and cache files
+/var/logs/
+/var/cache/
+
+# PHPStorm project files
+.idea/
+
+# VS Code project files
+.vscode/
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+farm/composer.json
+
+{
+    "name": "your-username/farm",
+    "description": "Digital Asset Management for game assets - Farm Project",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Your Name",
+            "email": "your.email@example.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.4",
+        "ext-mysqli": "*",
+        "ext-zip": "*",
+        "ext-gd": "*",
+        "ext-fileinfo": "*"
+    },
+    "autoload": {
+        "files": [
+            "src/lib/functions.php"
+        ]
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
+
+farm/LICENSE
+
+MIT License
+
+Copyright (c) [YEAR] [YOUR NAME]
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+farm/README.md
+
+# Farm: Digital Asset Manager
+
+## Files, Assets, Resources, Metadata
+
+Farm is a simple, open-source web application for tracking and managing your digital game assets. It allows you to organize assets by store, author, license, tags, and projects, and provides a way to upload files (including zip archives), preview graphics, and play audio.
+
+## Features
+
+* **Asset Tracking:** Store details like asset name, source store, link, author, and license.
+* **Flexible Organization:** Categorize assets with zero or more tags and associate them with zero or more projects.
+* **File Management:** Upload individual files or zip archives.
+* **Automatic Extraction:** Zip files are automatically extracted, and their contents are individually tracked.
+* **Enhanced Tagging:**
+    * Automatically tags assets based on the uploaded zip filename and source URL.
+    * Extracts additional tags from directory names within uploaded zip archives (e.g., `20x20/static` will add "20x20" and "static" as tags).
+* **Media Previews:** View previews of image files (JPG, PNG, GIF) and play audio files (WAV, MP3, OGG).
+* **Text File Handling:** Supports uploading and managing various text-based files (TXT, MD, HTML, JSON, XML).
+* **Search & Browse:** Search by name, tag, type, and graphics size. Browse all assets with quick access to details.
+
+## Project Structure
+
+
+farm/
+├── config/             # Configuration files (copy config.php.dist to config.php)
+├── src/                # Core application source code
+│   ├── lib/            # Core PHP functions
+│   ├── templates/      # HTML templates
+│   └── index.php       # Front controller (main entry point)
+├── public/             # Web server document root (publicly accessible files)
+│   ├── css/            # Stylesheets
+│   ├── js/             # JavaScript files
+│   ├── uploads/        # Directory for uploaded asset files (managed by PHP)
+│   ├── previews/       # Directory for generated image thumbnails (managed by PHP)
+│   └── .htaccess       # Apache configuration (optional)
+├── var/                # Volatile data: logs, cache (excluded from version control)
+├── docs/               # Project documentation, including database schema
+├── .gitignore          # Git ignore file
+├── composer.json       # Composer dependency definitions
+├── LICENSE             # Project license
+└── install.sh          # Installation script
+
+
+## Installation
+
+**Prerequisites:**
+
+* Web server (Apache, Nginx, etc.)
+* PHP (>= 7.4) with `mysqli`, `zip`, `gd`, and `fileinfo` extensions enabled.
+* MySQL/MariaDB database server.
+* Composer (PHP dependency manager).
+* MySQL client command-line tool.
+
+**Steps:**
+
+1.  **Create the project directory:**
+    Create a new directory named `farm` on your local machine.
+
+2.  **Create the file structure and populate files:**
+    Inside the `farm` directory, manually create all the subdirectories (e.g., `config/`, `src/lib/`, `public/css/`, etc.) as shown in the "Project Structure" above. Then, copy and paste the content for each file into its corresponding newly created file.
+
+3.  **Make the install script executable:**
+    Open your terminal or command prompt, navigate to the `farm` directory, and run:
+    ```bash
+    chmod +x install.sh
+    ```
+
+4.  **Run the installation script:**
+    ```bash
+    ./install.sh
+    ```
+    The script will:
+    * Check for required software.
+    * Copy `config/config.php.dist` to `config/config.php`.
+    * Prompt you for database connection details (host, name, user, password) and update `config/config.php`.
+    * Create the necessary `public/uploads`, `public/previews`, `var/logs`, and `var/cache` directories.
+    * Install PHP dependencies via Composer (including `ext-fileinfo` for `mime_content_type`).
+    * Import the database schema (`docs/database.sql`) into your MySQL database.
+
+5.  **Configure your web server:**
+    Point your web server's document root to the `public/` directory within the `farm` project.
+
+    **Example (Apache):**
+    Add a Virtual Host entry similar to this (adjust `DocumentRoot` and `Directory` paths):
+    ```apache
+    <VirtualHost *:80>
+        ServerName farm.localhost
+        DocumentRoot /path/to/your/farm/public
+
+        <Directory /path/to/your/farm/public>
+            AllowOverride All
+            Require all granted
+        </Directory>
+
+        ErrorLog ${APACHE_LOG_DIR}/farm_error.log
+        CustomLog ${APACHE_LOG_DIR}/farm_access.log combined
+    </VirtualHost>
+    ```
+    Remember to enable `mod_rewrite` if you plan to use clean URLs (not implemented yet, but good practice for future).
+
+6.  **Access the application:**
+    Open your web browser and navigate to the configured URL (e.g., `http://farm.localhost`).
+
+## Usage
+
+* **Upload:** Use the "Upload New Asset" form to add new digital game assets. You can now provide the asset name, source URL, store, author, license, and initial tags/projects directly during upload. Zip files will be automatically extracted, and content will be processed and tagged.
+* **Browse:** View a list of all your assets. Click "Details" to see more information about a specific asset, including its associated files, tags, and projects.
+* **Search:** Use the search form to find assets by asset name, associated tags, or file type.
+
+## Contributing
+
+Contributions are welcome! Please feel free to open a bug report, suggest a feature, or submit a pull request.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
