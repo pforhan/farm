@@ -5,6 +5,7 @@ import sys
 def extract_farm_project(input_file_path_raw):
     """
     Extracts the Farm Project files from a single text file.
+    Useful for pulling updates from a gemini canvas.
     It expects file paths to be marked with '--- FILE START: farm/path/to/file.ext ---'
     The content of each file runs until the next '--- FILE START:' marker or EOF.
     """

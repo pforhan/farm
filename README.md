@@ -1,8 +1,10 @@
 # Farm: Digital Asset Manager
 
+NOTE: EVERYTHING BELOW AND EVERY FILE IN THIS PROJECT IS AI-GENERATED AND NOT CONFIRMED YET.  USE AT YOUR OWN RISK.
+
 ## Files, Assets, Resources, Metadata
 
-Farm is a simple, open-source web application for tracking and managing your digital game assets. It allows you to organize assets by store, author, license, tags, and projects, and provides a way to upload files (including zip archives), preview graphics, and play audio.
+Farm is a simple, open-source web application for tracking and managing your digital  assets. It allows you to organize assets by store (source), author, license, tags, and projects, and provides a way to upload files (including zip archives), preview graphics, and play audio.
 
 ## Features
 
