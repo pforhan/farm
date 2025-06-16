@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 # Script to install the Farm Digital Asset Manager
@@ -7,7 +6,7 @@
 set -e
 
 # Check for required commands
-command -v composer >/dev/null 2>&1 || { echo >&2 "Composer is required.  Please install it: https://getcomposer.org"; exit 1; }
+command -v composer >/dev/null 2>&1 || { echo >&2 "Composer is required.  Please install it: [https://getcomposer.org](https://getcomposer.org)"; exit 1; }
 command -v mysql >/dev/null 2>&1 || { echo >&2 "MySQL client is required."; exit 1; }
 
 # Define directories

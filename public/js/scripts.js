@@ -1,4 +1,3 @@
-
 // public/js/scripts.js
 // This file can be used for any client-side interactivity.
 // For now, it's a placeholder.
@@ -15,4 +14,3 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-

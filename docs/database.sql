@@ -1,4 +1,3 @@
-
 CREATE TABLE stores (
     store_id INT AUTO_INCREMENT PRIMARY KEY,
     store_name VARCHAR(255) NOT NULL

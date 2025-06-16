@@ -1,4 +1,3 @@
-
 <?php
 // Database Configuration (config.php)
 // Copy this file to config.php and update with your actual credentials.
@@ -15,3 +14,4 @@ define('PREVIEW_DIR', __DIR__ . '/../public/previews/'); // Absolute path, writa
 define('MAX_FILE_SIZE', 20 * 1024 * 1024); // 20MB max upload size
 define('ALLOWED_TYPES', ['zip', 'png', 'jpg', 'jpeg', 'gif', 'wav', 'mp3', 'ogg', 'txt', 'md', 'html', 'json', 'xml']); // Added text-based file types
 
+?>

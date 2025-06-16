@@ -1,4 +1,3 @@
-
 <?php
 // Include the configuration file (outside web root)
 require_once '../config/config.php';
@@ -58,3 +57,4 @@ switch ($action) {
 }
 
 $conn->close();
+?>

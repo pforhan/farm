@@ -1,4 +1,3 @@
-
 <?php
 // src/lib/functions.php
 
@@ -194,6 +193,47 @@ function associate_projects_with_asset($asset_id, $projects_string, $conn) {
     }
 }
 
+// New function to generate tags from filename patterns
+function generate_filename_tags($asset_id, $full_file_path, $conn) {
+    $file_name = basename($full_file_path);
+    $name_without_ext = pathinfo($file_name, PATHINFO_FILENAME);
+
+    // 1. Always add the full filename (without extension) as a tag
+    associate_tags_with_asset($asset_id, $name_without_ext, $conn);
+
+    // 2. Split by common delimiters and add as tags (filtered)
+    $parts = preg_split('/[_-]/', $name_without_ext); // Split by underscore or hyphen
+    foreach ($parts as $part) {
+        $part = trim($part);
+        if (empty($part)) continue;
+
+        // Skip purely numeric parts (unless they are part of a specific pattern later)
+        if (is_numeric($part) && strlen($part) < 3) { // Adjust length threshold as needed
+            continue;
+        }
+        // Skip common generic words
+        if (in_array(strtolower($part), ['a', 'the', 'and', 'or', 'to', 'of', 'for'])) {
+            continue;
+        }
+
+        associate_tags_with_asset($asset_id, $part, $conn);
+    }
+
+    // 3. Detect and add dimension tags (e.g., 20x20, 1280x720)
+    if (preg_match_all('/\b(\d{2,4}x\d{2,4})\b/i', $name_without_ext . ' ' . dirname($full_file_path), $matches)) {
+        foreach ($matches[1] as $dimension_tag) {
+            associate_tags_with_asset($asset_id, $dimension_tag, $conn);
+        }
+    }
+
+    // 4. (Optional, future enhancement): Detect specific sequence patterns like "prefix:N"
+    // For "1_fire_1.png", if you specifically want "prefix:1", "suffix:1"
+    // This would require more specific regex and might be too complex for initial implementation.
+    // E.g., if (preg_match('/^(\d+)_/', $name_without_ext, $m)) { associate_tags_with_asset($asset_id, 'prefix:' . $m[1], $conn); }
+    // E.g., if (preg_match('/_(\d+)$/', $name_without_ext, $m)) { associate_tags_with_asset($asset_id, 'suffix:' . $m[1], $conn); }
+}
+
+
 // Updated process_zip_file to handle subdirectory tags and pass base tags
 function process_zip_file($file_path, $asset_id, $conn, $base_tags_string = '') {
     $zip = new ZipArchive;
@@ -253,12 +293,15 @@ function process_zip_file($file_path, $asset_id, $conn, $base_tags_string = '') 
 
                 // Generate tags from directory structure within the zip
                 $relative_dir = dirname($entry_name);
-                if ($relative_dir != '.' && $relative_dir != '') { // Ensure not root directory or empty
+                if ($relative_dir != '.' && $relative_dir != '') {
                     $dir_parts = array_filter(explode('/', $relative_dir));
                     foreach ($dir_parts as $part) {
                         associate_tags_with_asset($asset_id, $part, $conn);
                     }
                 }
+
+                // Generate tags from the filename of the extracted file itself
+                generate_filename_tags($asset_id, $entry_name, $conn);
 
             } else {
                 error_log("Failed to extract or write file: " . $entry_name);
@@ -331,20 +374,22 @@ function handle_file_upload($file, $asset_details, $conn) {
         $target_path = $target_dir . $file_name;
 
         if (move_uploaded_file($file_tmp, $target_path)) {
-            // Generate tags from the main uploaded filename (e.g., "my_texture_pack.zip" -> "my_texture_pack")
-            $base_file_tags = explode('.', basename($file_name))[0];
+            // Generate tags from the main uploaded filename and source URL domain
+            $base_file_tags = '';
             // Add domain from link as a tag if available
             if (!empty($link)) {
                 $host = parse_url($link, PHP_URL_HOST);
                 if ($host) {
-                    $base_file_tags .= ',' . $host;
+                    $base_file_tags .= $host . ',';
                 }
             }
-            associate_tags_with_asset($asset_id, $base_file_tags, $conn);
+            // Generate other filename-based tags
+            generate_filename_tags($asset_id, $file_name, $conn);
 
 
             if ($file_ext == 'zip') {
-                if(process_zip_file($target_path, $asset_id, $conn, $tags_string . ',' . $base_file_tags)){ // Pass initial and file-derived tags to zip processor
+                // Pass initial and file-derived tags to zip processor
+                if(process_zip_file($target_path, $asset_id, $conn, $tags_string . ',' . $base_file_tags)){
                     return "ZIP file extracted and processed for Asset ID: " . $asset_id;
                 } else {
                     return "ZIP file extraction failed for Asset ID: " . $asset_id;
@@ -480,6 +525,19 @@ function search_assets($conn, $query) {
         }
     }
 
+    // Search by graphics size (e.g., '20x20') - This relies on dimension tags being added
+    $sql_size = "SELECT DISTINCT a.asset_id, a.asset_name, a.link FROM assets a
+                 JOIN asset_tags at ON a.asset_id = at.asset_id
+                 JOIN tags t ON at.tag_id = t.tag_id
+                 WHERE t.tag_name LIKE '%x%' AND t.tag_name LIKE '$search_query'"; // Simplified size search
+    $result_size = $conn->query($sql_size);
+    if ($result_size->num_rows > 0) {
+        while ($row = $result_size->fetch_assoc()) {
+            $search_results[$row['asset_id']] = $row;
+        }
+    }
+
+
     // Convert to indexed array for templates
     return array_values($search_results);
 }
@@ -503,3 +561,4 @@ function get_asset_details($asset_id, $conn) {
     $stmt->close();
     return $asset_details;
 }
+?>
