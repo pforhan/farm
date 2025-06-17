@@ -29,6 +29,7 @@ farm/
 ├── src/                # Core application source code
 │   ├── lib/            # Core PHP functions
 │   └── templates/      # HTML templates
+│       └── partials/   # Reusable HTML partials (e.g., navigation)
 ├── public/             # Web server document root (publicly accessible files)
 │   ├── css/            # Stylesheets
 │   ├── js/             # JavaScript files
@@ -75,14 +76,21 @@ This is the recommended way to run Farm, providing a consistent and isolated env
     * Create the necessary `public/uploads`, `public/previews`, `var/logs`, `var/cache`, and `php-fpm` directories on your host machine.
     * Copy `sample.env` to `.env` if `.env` doesn't exist or if you choose to overwrite it.
     * Move `src/index.php` to `public/index.php` if it's still in `src/`.
+    * Create `src/templates/partials` directory.
 
 3.  **Create `farm/php-fpm/custom.ini`:**
-    Create a file named `custom.ini` inside the newly created `farm/php-fpm/` directory and paste the content provided in the `php-fpm/custom.ini` section of the Canvas. This file sets your PHP upload limits and logging paths.
+    Create a file named `custom.ini` inside the newly created `farm/php-fpm/` directory and paste the content provided in the `php-fpm/custom.ini` section of this Canvas. This file sets your PHP upload limits and logging paths.
 
-4.  **Review and update `.env`:**
+4.  **Create `farm/src/templates/partials/navigation.php`:**
+    Create this directory and file, and paste the content provided in the `src/templates/partials/navigation.php` section of this Canvas.
+
+5.  **Create `farm/src/templates/edit_asset.php`:**
+    Create this file and paste the content provided in the `src/templates/edit_asset.php` section of this Canvas.
+
+6.  **Review and update `.env`:**
     Open the newly created (or updated) `.env` file in your `farm` project root. **Replace the placeholder values for `MYSQL_ROOT_PASSWORD`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`** with your desired credentials. The `APP_PORT` will default to `6118`.
 
-5.  **Build and start the Docker services:**
+7.  **Build and start the Docker services:**
     From your `farm` project root directory, run:
     ```bash
     sudo docker compose up --build -d
@@ -97,22 +105,15 @@ This is the recommended way to run Farm, providing a consistent and isolated env
     * **Automatically initialize the MySQL database** by importing `docs/database.sql` on the *first run* of the `db` service.
     * Set up networking between the containers.
 
-6.  **Access the application:**
+8.  **Access the application:**
     Open your web browser and navigate to `http://localhost:6118` (or `http://localhost:YOUR_APP_PORT` if you changed `APP_PORT` from 6118).
-
-**To stop and remove containers (and networks/volumes by default):**
-
-```bash
-docker compose down
-```
-
-*(If you want to remove the database data volume as well, use `docker compose down -v`)*
 
 ## Usage
 
 * **Upload:** Use the "Upload New Asset" form to add new digital game assets. You can now provide the asset name, source URL, store, author, license, and initial tags/projects directly during upload. Zip files will be automatically extracted, and content will be processed and tagged.
-* **Browse:** View a list of all your assets. Click "Details" to see more information about a specific asset, including its associated files, tags, and projects.
-* **Search:** Use the search form to find assets by asset name, associated tags, or file type.
+* **Browse:** View a list of all your assets, now with thumbnail previews! Click "Details" to see more information about a specific asset, including its associated files, tags, and projects.
+* **Search:** Use the search form to find assets by asset name, associated tags, file type, store name, author name, or license name. Search results also include thumbnail previews.
+* **Edit Metadata:** On the browse and search results pages, click the "Edit" link next to an asset to modify its name, link, store, author, license, tags, and projects.
 * **Check Logs:** For debugging, you can inspect the Nginx and PHP error logs directly on your host machine:
     * Nginx Access Log: `cat farm/var/logs/nginx_access.log`
     * Nginx Error Log: `cat farm/var/logs/nginx_error.log`

@@ -54,6 +54,33 @@ switch ($action) {
             echo "Invalid Asset ID";
         }
         break;
+    case 'edit_asset':
+        $message = '';
+        $asset_id = isset($_REQUEST['id']) ? intval($_REQUEST['id']) : (isset($_POST['asset_id']) ? intval($_POST['asset_id']) : 0);
+
+        if ($asset_id > 0) {
+            if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_update'])) {
+                $asset_details_input = [
+                    'asset_name'    => sanitize_input($_POST['asset_name'] ?? ''),
+                    'link'          => sanitize_input($_POST['link'] ?? ''),
+                    'store_name'    => sanitize_input($_POST['store_name'] ?? ''),
+                    'author_name'   => sanitize_input($_POST['author_name'] ?? ''),
+                    'license_name'  => sanitize_input($_POST['license_name'] ?? ''),
+                    'tags_string'   => sanitize_input($_POST['tags'] ?? ''),
+                    'projects_string' => sanitize_input($_POST['projects'] ?? '')
+                ];
+                $update_result = update_asset_details($asset_id, $asset_details_input, $conn);
+                $message = $update_result;
+            }
+            // Always fetch latest details after potential update or for initial display
+            $asset_details = get_asset_details($asset_id, $conn);
+            $tag_details = get_tag_details($asset_id, $conn);
+            $project_details = get_project_details($asset_id, $conn);
+            include __DIR__ . '/../src/templates/edit_asset.php';
+        } else {
+            echo "Invalid Asset ID for editing.";
+        }
+        break;
     default:
         echo "Invalid action.";
 }

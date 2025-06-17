@@ -10,10 +10,7 @@
     <h1><?php echo PROJECT_NAME; ?> - Search Results</h1>
     <h2><?php echo PROJECT_ACRONYM; ?></h2>
 
-    <p>
-        <a href="index.php?action=browse">Back to Browse</a> |
-        <a href="index.php?action=upload">Upload New Asset</a>
-    </p>
+    <?php include __DIR__ . '/partials/navigation.php'; ?>
 
     <form action="index.php" method="get">
         <input type="hidden" name="action" value="search">
@@ -29,6 +26,7 @@
             <thead>
                 <tr>
                     <th>ID</th>
+                    <th>Preview</th>
                     <th>Name</th>
                     <th>Link</th>
                     <th>Actions</th>
@@ -38,6 +36,13 @@
                 <?php foreach ($search_results as $asset): ?>
                     <tr>
                         <td><?php echo htmlspecialchars($asset['asset_id']); ?></td>
+                        <td>
+                            <?php if (!empty($asset['preview_thumbnail'])): ?>
+                                <img src="<?php echo htmlspecialchars($asset['preview_thumbnail']); ?>" alt="Preview" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+                            <?php else: ?>
+                                N/A
+                            <?php endif; ?>
+                        </td>
                         <td><?php echo htmlspecialchars($asset['asset_name']); ?></td>
                         <td>
                             <?php if (!empty($asset['link'])): ?>
@@ -46,7 +51,10 @@
                                 N/A
                             <?php endif; ?>
                         </td>
-                        <td><a href="index.php?action=asset_details&id=<?php echo $asset['asset_id']; ?>">Details</a></td>
+                        <td>
+                            <a href="index.php?action=asset_details&id=<?php echo $asset['asset_id']; ?>">Details</a> |
+                            <a href="index.php?action=edit_asset&id=<?php echo $asset['asset_id']; ?>">Edit</a>
+                        </td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>

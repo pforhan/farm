@@ -484,7 +484,9 @@ function get_project_details($asset_id, $conn){
 // Placeholder: Get all assets
 function get_all_assets($conn) {
     $assets = [];
-    $sql = "SELECT asset_id, asset_name, link FROM assets ORDER BY asset_id DESC LIMIT 20"; // Example: get latest 20 assets
+    // Select the first preview path if available for each asset
+    $sql = "SELECT a.asset_id, a.asset_name, a.link, (SELECT f.preview_path FROM files f WHERE f.asset_id = a.asset_id AND f.preview_path IS NOT NULL LIMIT 1) as preview_thumbnail
+            FROM assets a ORDER BY a.asset_id DESC LIMIT 20";
     $result = $conn->query($sql);
     if ($result->num_rows > 0) {
         while ($row = $result->fetch_assoc()) {
@@ -499,52 +501,29 @@ function search_assets($conn, $query) {
     $search_results = [];
     $search_query = "%" . $conn->real_escape_string($query) . "%";
 
-    // Search by asset name
-    $sql = "SELECT DISTINCT a.asset_id, a.asset_name, a.link FROM assets a WHERE a.asset_name LIKE '$search_query'";
+    // Combined query to search and get preview_thumbnail
+    $sql = "SELECT DISTINCT a.asset_id, a.asset_name, a.link, (SELECT f.preview_path FROM files f WHERE f.asset_id = a.asset_id AND f.preview_path IS NOT NULL LIMIT 1) as preview_thumbnail
+            FROM assets a
+            LEFT JOIN asset_tags at ON a.asset_id = at.asset_id
+            LEFT JOIN tags t ON at.tag_id = t.tag_id
+            LEFT JOIN files f_main ON a.asset_id = f_main.asset_id
+            LEFT JOIN stores s ON a.store_id = s.store_id
+            LEFT JOIN authors auth ON a.author_id = auth.author_id
+            LEFT JOIN licenses l ON a.license_id = l.license_id
+            WHERE a.asset_name LIKE '$search_query'
+               OR t.tag_name LIKE '$search_query'
+               OR f_main.file_type LIKE '$search_query'
+               OR (t.tag_name LIKE '%x%' AND t.tag_name LIKE '$search_query')
+               OR s.store_name LIKE '$search_query'
+               OR auth.author_name LIKE '$search_query'
+               OR l.license_name LIKE '$search_query'
+            ORDER BY a.asset_id DESC"; // Added ORDER BY for consistent results
     $result = $conn->query($sql);
     if ($result->num_rows > 0) {
         while ($row = $result->fetch_assoc()) {
             $search_results[$row['asset_id']] = $row; // Use asset_id as key to prevent duplicates
         }
     }
-
-    // Search by tag name
-    $sql_tags = "SELECT DISTINCT a.asset_id, a.asset_name, a.link FROM assets a
-                 JOIN asset_tags at ON a.asset_id = at.asset_id
-                 JOIN tags t ON at.tag_id = t.tag_id
-                 WHERE t.tag_name LIKE '$search_query'";
-    $result_tags = $conn->query($sql_tags);
-    if ($result_tags->num_rows > 0) {
-        while ($row = $result_tags->fetch_assoc()) {
-            $search_results[$row['asset_id']] = $row;
-        }
-    }
-
-    // Search by file type (e.g., 'image/png', 'audio/mp3', 'text/plain')
-    $sql_file_type = "SELECT DISTINCT a.asset_id, a.asset_name, a.link FROM assets a
-                      JOIN files f ON a.asset_id = f.asset_id
-                      WHERE f.file_type LIKE '$search_query'";
-    $result_file_type = $conn->query($sql_file_type);
-    if ($result_file_type->num_rows > 0) {
-        while ($row = $result_file_type->fetch_assoc()) {
-            $search_results[$row['asset_id']] = $row;
-        }
-    }
-
-    // Search by graphics size (e.g., '20x20') - This relies on dimension tags being added
-    $sql_size = "SELECT DISTINCT a.asset_id, a.asset_name, a.link FROM assets a
-                 JOIN asset_tags at ON a.asset_id = at.asset_id
-                 JOIN tags t ON at.tag_id = t.tag_id
-                 WHERE t.tag_name LIKE '%x%' AND t.tag_name LIKE '$search_query'"; // Simplified size search
-    $result_size = $conn->query($sql_size);
-    if ($result_size->num_rows > 0) {
-        while ($row = $result_size->fetch_assoc()) {
-            $search_results[$row['asset_id']] = $row;
-        }
-    }
-
-
-    // Convert to indexed array for templates
     return array_values($search_results);
 }
 
@@ -566,5 +545,44 @@ function get_asset_details($asset_id, $conn) {
     }
     $stmt->close();
     return $asset_details;
+}
+
+// Function to update asset details
+function update_asset_details($asset_id, $asset_details, $conn) {
+    $asset_name = sanitize_input($asset_details['asset_name']);
+    $link = sanitize_input($asset_details['link']);
+    $store_name = sanitize_input($asset_details['store_name']);
+    $author_name = sanitize_input($asset_details['author_name']);
+    $license_name = sanitize_input($asset_details['license_name']);
+    $tags_string = sanitize_input($asset_details['tags_string']);
+    $projects_string = sanitize_input($asset_details['projects_string']);
+
+    $store_id = get_or_create_id('stores', 'store_name', $store_name, $conn);
+    $author_id = get_or_create_id('authors', 'author_name', $author_name, $conn);
+    $license_id = get_or_create_id('licenses', 'license_name', $license_name, $conn);
+
+    // Update main asset record
+    $stmt = $conn->prepare("UPDATE assets SET asset_name = ?, link = ?, store_id = ?, author_id = ?, license_id = ? WHERE asset_id = ?");
+    if ($stmt === false) {
+        error_log("Prepare failed for asset update: " . $conn->error);
+        return "Error preparing asset update.";
+    }
+    $stmt->bind_param("ssiiii", $asset_name, $link, $store_id, $author_id, $license_id, $asset_id);
+    if (!$stmt->execute()) {
+        error_log("Error updating asset: " . $stmt->error);
+        $stmt->close();
+        return "Error updating asset record: " . $stmt->error;
+    }
+    $stmt->close();
+
+    // Update asset_tags
+    $conn->query("DELETE FROM asset_tags WHERE asset_id = $asset_id");
+    associate_tags_with_asset($asset_id, $tags_string, $conn);
+
+    // Update asset_projects
+    $conn->query("DELETE FROM asset_projects WHERE asset_id = $asset_id");
+    associate_projects_with_asset($asset_id, $projects_string, $conn);
+
+    return "Asset ID $asset_id updated successfully.";
 }
 ?>

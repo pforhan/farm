@@ -10,11 +10,7 @@
     <h1><?php echo PROJECT_NAME; ?> - Asset Details</h1>
     <h2><?php echo PROJECT_ACRONYM; ?></h2>
 
-    <p>
-        <a href="index.php?action=browse">Back to Browse</a> |
-        <a href="index.php?action=upload">Upload New Asset</a> |
-        <a href="index.php?action=search">Search Assets</a>
-    </p>
+    <?php include __DIR__ . '/partials/navigation.php'; ?>
 
     <?php if (!empty($asset_details)): ?>
         <h3>Asset: <?php echo htmlspecialchars($asset_details['asset_name']); ?> (ID: <?php echo htmlspecialchars($asset_details['asset_id']); ?>)</h3>

@@ -10,6 +10,8 @@
     <h1><?php echo PROJECT_NAME; ?> - Upload New Asset</h1>
     <h2><?php echo PROJECT_ACRONYM; ?></h2>
 
+    <?php include __DIR__ . '/partials/navigation.php'; ?>
+
     <?php if (isset($message) && !empty($message)) { ?>
         <p style="color: green; font-weight: bold;"><?php echo htmlspecialchars($message); ?></p>
     <?php } ?>
@@ -41,10 +43,6 @@
 
         <input type="submit" value="Upload Asset" name="submit">
     </form>
-    <p>
-        <a href="index.php?action=browse">Browse Assets</a> |
-        <a href="index.php?action=search">Search Assets</a>
-    </p>
     <script src="js/scripts.js"></script>
 </body>
 </html>
