@@ -15,11 +15,14 @@
     <?php } ?>
 
     <form action="index.php?action=upload" method="post" enctype="multipart/form-data">
+        <label for="file">Select file to upload:</label>
+        <input type="file" name="file" id="file" required><br><br>
+
         <label for="asset_name">Asset Name:</label>
         <input type="text" name="asset_name" id="asset_name" required><br><br>
 
         <label for="link">Source URL (Link):</label>
-        <input type="url" name="link" id="link" placeholder="[http://example.com/source](http://example.com/source)"><br><br>
+        <input type="url" name="link" id="link" placeholder="http://example.com/source"><br><br>
 
         <label for="store_name">Store:</label>
         <input type="text" name="store_name" id="store_name" placeholder="e.g., Unity Asset Store"><br><br>
@@ -36,8 +39,6 @@
         <label for="projects">Projects (comma-separated):</label>
         <input type="text" name="projects" id="projects" placeholder="e.g., MyGameTitle, RPG"><br><br>
 
-        Select file to upload:
-        <input type="file" name="file" id="file" required>
         <input type="submit" value="Upload Asset" name="submit">
     </form>
     <p>

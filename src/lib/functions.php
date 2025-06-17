@@ -92,7 +92,10 @@ function get_or_create_id($table_name, $column_name, $value, $conn) {
     // Sanitize the value for safe database query
     $sanitized_value = $conn->real_escape_string($value);
 
-    $stmt = $conn->prepare("SELECT " . $table_name . "_id FROM " . $table_name . " WHERE " . $column_name . " = ?");
+    // Dynamically construct the singular ID column name
+    $id_column_name = rtrim($table_name, 's') . '_id';
+
+    $stmt = $conn->prepare("SELECT " . $id_column_name . " FROM " . $table_name . " WHERE " . $column_name . " = ?");
     if ($stmt === false) {
         error_log("Prepare failed for get_or_create_id ($table_name): " . $conn->error);
         return null;
@@ -104,7 +107,7 @@ function get_or_create_id($table_name, $column_name, $value, $conn) {
     if ($result->num_rows > 0) {
         $row = $result->fetch_assoc();
         $stmt->close();
-        return $row[$table_name . '_id'];
+        return $row[$id_column_name]; // Use the corrected ID column name
     } else {
         $stmt->close();
         $stmt = $conn->prepare("INSERT INTO " . $table_name . " (" . $column_name . ") VALUES (?)");
@@ -230,7 +233,8 @@ function generate_filename_tags($asset_id, $full_file_path, $conn) {
     // For "1_fire_1.png", if you specifically want "prefix:1", "suffix:1"
     // This would require more specific regex and might be too complex for initial implementation.
     // E.g., if (preg_match('/^(\d+)_/', $name_without_ext, $m)) { associate_tags_with_asset($asset_id, 'prefix:' . $m[1], $conn); }
-    // E.g., if (preg_match('/_(\d+)$/', $name_without_ext, $m)) { associate_tags_with_asset($asset_id, 'suffix:' . $m[1], $conn); }
+    // E.g., if (preg_match('/_(\d+)$/', $name_without_ext, $m)) { associate_tags_with_asset($asset_id, 'suffix:' . $m[1],
+    // conn); }
 }
 
 
