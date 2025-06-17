@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  # PHP-FPM Service
+  app:
+    build:
+      context: . # Build from the current directory (where Dockerfile is located)
+      dockerfile: Dockerfile
+    container_name: farm_app
+    restart: unless-stopped
+    volumes:
+      # Mount the current project directory into the container's web root
+      # This allows for live code changes without rebuilding the image
+      - .:/var/www/html
+    # Environment variables from .env file are automatically passed to `app` if it's the main service,
+    # or explicitly if listed under 'environment'. In PHP, they are accessed via getenv() or $_ENV.
+    networks:
+      - farm_network
+
+  # Nginx Web Server Service
+  nginx:
+    image: nginx:stable-alpine # Use a lightweight Nginx image
+    container_name: farm_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80" # Map host port 80 to container port 80
+    volumes:
+      # Mount the current project directory (especially the public folder)
+      - .:/var/www/html
+      # Mount the Nginx configuration file
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app # Ensure PHP-FPM is running before Nginx starts
+    networks:
+      - farm_network
+
+  # MySQL Database Service
+  db:
+    image: mysql:8.0 # Use a specific MySQL version
+    container_name: farm_mysql
+    restart: unless-stopped
+    environment:
+      # These environment variables configure the MySQL server
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD} # Defined in .env file
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      # Persist database data to a named volume on the host, so data isn't lost
+      - db_data:/var/lib/mysql
+      # Mount the database schema SQL file to automatically import on first run
+      # The entrypoint script in MySQL images usually runs .sql files in /docker-entrypoint-initdb.d/
+      - ./docs/database.sql:/docker-entrypoint-initdb.d/database.sql:ro
+    ports:
+      - "3306:3306" # Optional: Map host port 3306 to container port 3306 for direct access (e.g., via MySQL Workbench)
+    networks:
+      - farm_network
+
+# Define networks for inter-service communication
+networks:
+  farm_network:
+    driver: bridge
+
+# Define named volumes for data persistence
+volumes:
+  db_data: # This volume will store your MySQL data
