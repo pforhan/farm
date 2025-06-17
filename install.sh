@@ -11,6 +11,7 @@ APP_DIR="$PWD"  # The current directory
 PUBLIC_DIR="$APP_DIR/public"
 VAR_DIR="$APP_DIR/var"
 SRC_DIR="$APP_DIR/src"
+PHP_FPM_DIR="$APP_DIR/php-fpm" # New directory for PHP-FPM config
 DOCS_DIR="$APP_DIR/docs" # Path to docs, including database.sql
 NGINX_DIR="$APP_DIR/nginx" # Path to nginx config
 
@@ -36,6 +37,10 @@ mkdir -p "$VAR_DIR/logs"
 mkdir -p "$VAR_DIR/cache"
 chmod -R 0777 "$VAR_DIR/logs"
 chmod -R 0777 "$VAR_DIR/cache"
+
+# Create php-fpm config directory
+echo "Creating php-fpm config directory on host..."
+mkdir -p "$PHP_FPM_DIR"
 
 # Handle .env file
 ENV_SAMPLE_FILE="$APP_DIR/sample.env"

@@ -30,6 +30,9 @@ WORKDIR /var/www/html
 # /var/www/html is the WORKDIR in the container
 COPY . /var/www/html
 
+# Copy custom PHP-FPM configuration
+COPY ./php-fpm/custom.ini /usr/local/etc/php/conf.d/custom.ini
+
 # Adjust permissions for the web server (Nginx/Apache) to be able to write to uploads and previews
 # This is crucial for file uploads and thumbnail generation.
 # Ensure 'config' directory is also owned by www-data if config.php isn't writable by root after copy

@@ -19,6 +19,7 @@ Farm is a simple, open-source web application for tracking and managing your dig
 * **Media Previews:** View previews of image files (JPG, PNG, GIF) and play audio files (WAV, MP3, OGG).
 * **Text File Handling:** Supports uploading and managing various text-based files (TXT, MD, HTML, JSON, XML).
 * **Search & Browse:** Search by name, tag, type, and graphics size. Browse all assets with quick access to details.
+* **Improved Error Logging:** Nginx and PHP-FPM errors are now logged to files accessible on the host.
 
 ## Project Structure
 
@@ -33,10 +34,11 @@ farm/
 │   ├── js/             # JavaScript files
 │   ├── uploads/        # Directory for uploaded asset files (managed by PHP)
 │   ├── previews/       # Directory for generated image thumbnails (managed by PHP)
-│   └── index.php       # Main application entry point 
+│   └── index.php       # Main application entry point
 ├── var/                # Volatile data: logs, cache (excluded from version control)
 ├── docs/               # Project documentation, including database schema
 ├── nginx/              # Nginx configuration for Docker
+├── php-fpm/            # PHP-FPM custom configuration (custom.ini for php.ini settings)
 ├── .gitignore          # Git ignore file
 ├── composer.json       # Composer dependency definitions
 ├── LICENSE             # Project license
@@ -70,29 +72,32 @@ This is the recommended way to run Farm, providing a consistent and isolated env
     ./install.sh
     ```
     This script will:
-    * Create the necessary `public/uploads`, `public/previews`, `var/logs`, and `var/cache` directories on your host machine.
+    * Create the necessary `public/uploads`, `public/previews`, `var/logs`, `var/cache`, and `php-fpm` directories on your host machine.
     * Copy `sample.env` to `.env` if `.env` doesn't exist or if you choose to overwrite it.
     * Move `src/index.php` to `public/index.php` if it's still in `src/`.
 
-3.  **Review and update `.env`:**
+3.  **Create `farm/php-fpm/custom.ini`:**
+    Create a file named `custom.ini` inside the newly created `farm/php-fpm/` directory and paste the content provided in the `php-fpm/custom.ini` section of the Canvas. This file sets your PHP upload limits and logging paths.
+
+4.  **Review and update `.env`:**
     Open the newly created (or updated) `.env` file in your `farm` project root. **Replace the placeholder values for `MYSQL_ROOT_PASSWORD`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`** with your desired credentials. The `APP_PORT` will default to `6118`.
 
-4.  **Build and start the Docker services:**
+5.  **Build and start the Docker services:**
     From your `farm` project root directory, run:
     ```bash
     sudo docker compose up --build -d
     ```
-    * `--build`: This ensures that your PHP application image is built from the `Dockerfile`. You only need this the first time or if you change the `Dockerfile`.
+    * `--build`: This ensures that your PHP application image is built from the `Dockerfile` and includes the new `custom.ini`. You only need this the first time or if you change the `Dockerfile` or `custom.ini`.
     * `-d`: Runs the containers in detached mode (in the background).
 
     This command will:
-    * Build the `app` (PHP-FPM) Docker image.
+    * Build the `app` (PHP-FPM) Docker image with the custom PHP configurations.
     * Start the `nginx` web server container, configured to serve your application on the port specified in `.env` (defaulting to 6118).
     * Start the `db` (MySQL) database container.
     * **Automatically initialize the MySQL database** by importing `docs/database.sql` on the *first run* of the `db` service.
     * Set up networking between the containers.
 
-5.  **Access the application:**
+6.  **Access the application:**
     Open your web browser and navigate to `http://localhost:6118` (or `http://localhost:YOUR_APP_PORT` if you changed `APP_PORT` from 6118).
 
 **To stop and remove containers (and networks/volumes by default):**
@@ -108,6 +113,10 @@ docker compose down
 * **Upload:** Use the "Upload New Asset" form to add new digital game assets. You can now provide the asset name, source URL, store, author, license, and initial tags/projects directly during upload. Zip files will be automatically extracted, and content will be processed and tagged.
 * **Browse:** View a list of all your assets. Click "Details" to see more information about a specific asset, including its associated files, tags, and projects.
 * **Search:** Use the search form to find assets by asset name, associated tags, or file type.
+* **Check Logs:** For debugging, you can inspect the Nginx and PHP error logs directly on your host machine:
+    * Nginx Access Log: `cat farm/var/logs/nginx_access.log`
+    * Nginx Error Log: `cat farm/var/logs/nginx_error.log`
+    * PHP Error Log: `cat farm/var/logs/php_errors.log`
 
 ## Contributing
 

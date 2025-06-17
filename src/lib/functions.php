@@ -424,9 +424,11 @@ function handle_file_upload($file, $asset_details, $conn) {
                 $stmt->close();
             }
         } else {
+            error_log("Failed to move uploaded file: " . $file_tmp . " to " . $target_path . ". Error: " . $file['error']);
             return "File upload failed";
         }
     } else {
+        error_log("File upload error: " . $file['error']);
         return "File upload error: " . $file['error'];
     }
 }
