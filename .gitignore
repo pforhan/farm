@@ -1,7 +1,6 @@
 # .gitignore for Farm Digital Asset Manager
 
 # Configuration file (contains sensitive data)
-/config/config.php
 .env
 
 # Vendor directory (Composer dependencies)
