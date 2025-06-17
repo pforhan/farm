@@ -27,12 +27,13 @@ farm/
 ├── src/                # Core application source code
 │   ├── lib/            # Core PHP functions
 │   ├── templates/      # HTML templates
-│   └── index.php       # Front controller (main entry point)
+│   └── public/         # Publicly accessible PHP entry point
 ├── public/             # Web server document root (publicly accessible files)
 │   ├── css/            # Stylesheets
 │   ├── js/             # JavaScript files
 │   ├── uploads/        # Directory for uploaded asset files (managed by PHP)
 │   ├── previews/       # Directory for generated image thumbnails (managed by PHP)
+│   ├── index.php       # Main application entry point
 │   └── .htaccess       # Apache configuration (optional)
 ├── var/                # Volatile data: logs, cache (excluded from version control)
 ├── docs/               # Project documentation, including database schema
@@ -62,7 +63,7 @@ This is the recommended way to run Farm, providing a consistent and isolated env
 2.  **Create the file structure and populate files:**
     Inside the `farm` directory, manually create all the subdirectories (e.g., `config/`, `src/lib/`, `public/css/`, `nginx/`, etc.) as shown in the "Project Structure" above.
 
-    Then, copy and paste the content for each file (including the **new** `farm/config/config.php`, `farm/docker-compose.yml`, `farm/sample.env`, and `farm/nginx/nginx.conf`) into its corresponding newly created file. Make sure to **remove `farm/config/config.php.dist`** as it's no longer used.
+    Then, copy and paste the content for each file (including the **new** `farm/public/index.php`, `farm/docker-compose.yml`, `farm/sample.env`, and `farm/nginx/nginx.conf`) into its corresponding newly created file.
 
     **Crucially, update your `farm/.env` file with your desired strong passwords and database names.**
 
@@ -75,6 +76,7 @@ This is the recommended way to run Farm, providing a consistent and isolated env
     This script will:
     * Create the necessary `public/uploads`, `public/previews`, `var/logs`, and `var/cache` directories on your host machine.
     * Copy `sample.env` to `.env` if `.env` doesn't exist or if you choose to overwrite it.
+    * **Move `src/index.php` to `public/index.php` if it's still in `src/`.**
 
 4.  **Review and update `.env`:**
     Open the newly created (or updated) `.env` file in your `farm` project root. **Replace the placeholder values for `MYSQL_ROOT_PASSWORD`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`, and `APP_PORT`** with your desired credentials and the port you'd like the application to run on (e.g., `APP_PORT=8080`).
@@ -82,7 +84,7 @@ This is the recommended way to run Farm, providing a consistent and isolated env
 5.  **Build and start the Docker services:**
     From your `farm` project root directory, run:
     ```bash
-    docker-compose up --build -d
+    sudo docker compose up --build -d
     ```
     * `--build`: This ensures that your PHP application image is built from the `Dockerfile`. You only need this the first time or if you change the `Dockerfile`.
     * `-d`: Runs the containers in detached mode (in the background).
@@ -99,9 +101,9 @@ This is the recommended way to run Farm, providing a consistent and isolated env
 
 **To stop and remove containers (and networks/volumes by default):**
 ```bash
-docker-compose down
+docker compose down
 ```
-*(If you want to remove the database data volume as well, use `docker-compose down -v`)*
+*(If you want to remove the database data volume as well, use `docker compose down -v`)*
 
 ## Usage
 

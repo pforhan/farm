@@ -10,11 +10,12 @@ set -e
 APP_DIR="$PWD"  # The current directory
 PUBLIC_DIR="$APP_DIR/public"
 VAR_DIR="$APP_DIR/var"
+SRC_DIR="$APP_DIR/src"
 DOCS_DIR="$APP_DIR/docs" # Path to docs, including database.sql
 NGINX_DIR="$APP_DIR/nginx" # Path to nginx config
 
 # Check if the script is being run in the correct directory
-if [ ! -d "$APP_DIR/src" ] || [ ! -d "$PUBLIC_DIR" ] || [ ! -d "$DOCS_DIR" ] || [ ! -d "$NGINX_DIR" ]; then
+if [ ! -d "$SRC_DIR" ] || [ ! -d "$PUBLIC_DIR" ] || [ ! -d "$DOCS_DIR" ] || [ ! -d "$NGINX_DIR" ]; then
   echo "Error: This script must be run in the project's root directory."
   echo "Please navigate to the project's root directory and try again."
   exit 1
@@ -60,14 +61,20 @@ else
   echo "Refer to 'docker-compose.yml' for required environment variables."
 fi
 
+# Move index.php to public/ if it's in src/
+if [ -f "$SRC_DIR/index.php" ]; then
+    echo "Moving src/index.php to public/index.php..."
+    mv "$SRC_DIR/index.php" "$PUBLIC_DIR/index.php"
+    echo "Done. All public requests will now be handled by public/index.php."
+fi
 
 echo "Installation setup complete!"
 echo " "
 echo "Next steps for Docker Compose environment:"
 echo "1.  Ensure you have Docker and Docker Compose installed."
 echo "2.  Review and update the '.env' file in your project root with your desired database credentials (if you haven't already)."
-echo "3.  From the project root ('$APP_DIR'), run:  docker-compose up --build -d"
-echo "4.  Access the application in your browser at: http://localhost"
+echo "3.  From the project root ('$APP_DIR'), run:  docker compose up --build -d"
+echo "4.  Access the application in your browser at: http://localhost:$(grep -E '^APP_PORT=' "$ENV_FILE" | cut -d'=' -f2 || echo "6118")"
 echo " "
 echo "Note: The database schema ('$DOCS_DIR/database.sql') will be automatically imported by the MySQL Docker container on its first run."
 exit 0
