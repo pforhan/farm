@@ -25,7 +25,8 @@ services:
     container_name: farm_nginx
     restart: unless-stopped
     ports:
-      - "80:80" # Map host port 80 to container port 80
+      # Use APP_PORT from .env, defaulting to 6118 if not set
+      - "${APP_PORT:-6118}:80" # Map host port (from .env) to container port 80
     volumes:
       # Mount the current project directory (especially the public folder)
       - .:/var/www/html

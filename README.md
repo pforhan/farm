@@ -40,6 +40,7 @@ farm/
 ├── .gitignore          # Git ignore file
 ├── composer.json       # Composer dependency definitions
 ├── LICENSE             # Project license
+├── sample.env          # Environment variables template for Docker Compose (COPY TO .env)
 ├── .env                # Environment variables for Docker Compose (DO NOT COMMIT)
 ├── docker-compose.yml  # Docker Compose setup
 └── install.sh          # Installation script
@@ -61,7 +62,7 @@ This is the recommended way to run Farm, providing a consistent and isolated env
 2.  **Create the file structure and populate files:**
     Inside the `farm` directory, manually create all the subdirectories (e.g., `config/`, `src/lib/`, `public/css/`, `nginx/`, etc.) as shown in the "Project Structure" above.
 
-    Then, copy and paste the content for each file (including the **new** `farm/config/config.php`, `farm/docker-compose.yml`, `farm/.env`, and `farm/nginx/nginx.conf`) into its corresponding newly created file. Make sure to **remove `farm/config/config.php.dist`** as it's no longer used.
+    Then, copy and paste the content for each file (including the **new** `farm/config/config.php`, `farm/docker-compose.yml`, `farm/sample.env`, and `farm/nginx/nginx.conf`) into its corresponding newly created file. Make sure to **remove `farm/config/config.php.dist`** as it's no longer used.
 
     **Crucially, update your `farm/.env` file with your desired strong passwords and database names.**
 
@@ -71,9 +72,14 @@ This is the recommended way to run Farm, providing a consistent and isolated env
     chmod +x install.sh
     ./install.sh
     ```
-    This script will create the necessary `public/uploads`, `public/previews`, `var/logs`, and `var/cache` directories on your host machine.
+    This script will:
+    * Create the necessary `public/uploads`, `public/previews`, `var/logs`, and `var/cache` directories on your host machine.
+    * Copy `sample.env` to `.env` if `.env` doesn't exist or if you choose to overwrite it.
 
-4.  **Build and start the Docker services:**
+4.  **Review and update `.env`:**
+    Open the newly created (or updated) `.env` file in your `farm` project root. **Replace the placeholder values for `MYSQL_ROOT_PASSWORD`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`, and `APP_PORT`** with your desired credentials and the port you'd like the application to run on (e.g., `APP_PORT=8080`).
+
+5.  **Build and start the Docker services:**
     From your `farm` project root directory, run:
     ```bash
     docker-compose up --build -d
@@ -83,13 +89,13 @@ This is the recommended way to run Farm, providing a consistent and isolated env
 
     This command will:
     * Build the `app` (PHP-FPM) Docker image.
-    * Start the `nginx` web server container, configured to serve your application.
+    * Start the `nginx` web server container, configured to serve your application on the port specified in `.env` (defaulting to 6118).
     * Start the `db` (MySQL) database container.
     * **Automatically initialize the MySQL database** by importing `docs/database.sql` on the *first run* of the `db` service.
     * Set up networking between the containers.
 
-5.  **Access the application:**
-    Open your web browser and navigate to `http://localhost`.
+6.  **Access the application:**
+    Open your web browser and navigate to `http://localhost:6118` (or `http://localhost:YOUR_APP_PORT` if you changed `APP_PORT` from 6118).
 
 **To stop and remove containers (and networks/volumes by default):**
 ```bash
