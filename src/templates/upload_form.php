@@ -19,7 +19,7 @@
         <input type="text" name="asset_name" id="asset_name" required><br><br>
 
         <label for="link">Source URL (Link):</label>
-        <input type="url" name="link" id="link" placeholder="http://example.com/source"><br><br>
+        <input type="url" name="link" id="link" placeholder="[http://example.com/source](http://example.com/source)"><br><br>
 
         <label for="store_name">Store:</label>
         <input type="text" name="store_name" id="store_name" placeholder="e.g., Unity Asset Store"><br><br>

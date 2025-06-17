@@ -2,6 +2,7 @@
 
 # Configuration file (contains sensitive data)
 /config/config.php
+.env
 
 # Vendor directory (Composer dependencies)
 /vendor/

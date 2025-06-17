@@ -21,29 +21,53 @@ if [ ! -d "$APP_DIR/src" ] || [ ! -d "$PUBLIC_DIR" ] || [ ! -d "$DOCS_DIR" ] || 
 fi
 
 # Create the uploads and previews directories and set permissions
-echo "Creating and setting permissions for uploads and previews directories..."
+echo "Creating and setting permissions for uploads and previews directories on host..."
 mkdir -p "$PUBLIC_DIR/uploads"
 mkdir -p "$PUBLIC_DIR/previews"
 # These permissions will be set inside the Docker container by the Dockerfile as well,
-# but it's good to have them on the host too if working directly.
+# but setting them on the host ensures Docker can bind-mount correctly without issues.
 chmod -R 0777 "$PUBLIC_DIR/uploads"
 chmod -R 0777 "$PUBLIC_DIR/previews"
 
 # Create the var directories
-echo "Creating var directories..."
+echo "Creating var directories on host..."
 mkdir -p "$VAR_DIR/logs"
 mkdir -p "$VAR_DIR/cache"
 chmod -R 0777 "$VAR_DIR/logs"
 chmod -R 0777 "$VAR_DIR/cache"
 
+# Handle .env file
+ENV_SAMPLE_FILE="$APP_DIR/sample.env"
+ENV_FILE="$APP_DIR/.env"
+
+if [ -f "$ENV_SAMPLE_FILE" ]; then
+  if [ -f "$ENV_FILE" ]; then
+    read -p "'.env' already exists. Overwrite with '$ENV_SAMPLE_FILE'? (y/n) " overwrite_env
+    if [[ "$overwrite_env" == "y" ]]; then
+      cp "$ENV_SAMPLE_FILE" "$ENV_FILE"
+      echo "'.env' overwritten from '$ENV_SAMPLE_FILE'."
+      echo "IMPORTANT: Please review and update database credentials in '$ENV_FILE'."
+    else
+      echo "Skipping '.env' creation. Ensure your existing '.env' is correctly configured."
+    fi
+  else
+    cp "$ENV_SAMPLE_FILE" "$ENV_FILE"
+    echo "'.env' created from '$ENV_SAMPLE_FILE'."
+    echo "IMPORTANT: Please review and update database credentials in '$ENV_FILE'."
+  fi
+else
+  echo "Warning: '$ENV_SAMPLE_FILE' not found. You will need to create a '.env' file manually."
+  echo "Refer to 'docker-compose.yml' for required environment variables."
+fi
+
+
 echo "Installation setup complete!"
 echo " "
 echo "Next steps for Docker Compose environment:"
 echo "1.  Ensure you have Docker and Docker Compose installed."
-echo "2.  Review and update the '.env' file in your project root with your desired database credentials."
+echo "2.  Review and update the '.env' file in your project root with your desired database credentials (if you haven't already)."
 echo "3.  From the project root ('$APP_DIR'), run:  docker-compose up --build -d"
 echo "4.  Access the application in your browser at: http://localhost"
 echo " "
-echo "For manual database import (if not using Docker Compose init):"
-echo "   You can still manually import '$DOCS_DIR/database.sql' into your MySQL database."
+echo "Note: The database schema ('$DOCS_DIR/database.sql') will be automatically imported by the MySQL Docker container on its first run."
 exit 0
