@@ -11,6 +11,7 @@ allprojects {
         mavenCentral()
         maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
         // Add any other repositories needed by subprojects
+        maven("https://maven.pkg.jetbrains.space/public/p/ktor/eap")
     }
 }
 

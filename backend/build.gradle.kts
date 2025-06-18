@@ -2,7 +2,7 @@
 
 plugins {
     kotlin("jvm")
-    id("io.ktor.jvm") version "2.3.9" // Ktor plugin
+    id("io.ktor.plugin") version "3.2.0" // Ktor plugin
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.23" // Kotlinx Serialization plugin
 }
 
@@ -11,10 +11,6 @@ version = "0.0.1"
 
 application {
     mainClass.set("com.farm.ApplicationKt") // Ktor application entry point
-}
-
-repositories {
-    mavenCentral()
 }
 
 dependencies {
