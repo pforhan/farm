@@ -12,6 +12,7 @@ import java.awt.RenderingHints
 import java.io.ByteArrayOutputStream
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.util.UUID
 
 // Constants for file storage (re-declared here for clarity in this utility file)
 val UPLOAD_DIR_UTIL = Paths.get(System.getProperty("user.dir"), "public", "uploads").toFile()
@@ -86,7 +87,7 @@ fun processZipFile(zipFile: File, assetId: Int, dao: Dao, originalArchiveFileNam
             assetUploadDir.mkdirs()
 
             // Add the "archive:archive-name" tag to the main asset
-            dao.associateTagsWithAsset(assetId, "archive:$originalArchiveFileName")
+            dao.associateTagsWithAsset(assetId, "archive:${originalArchiveFileName.substringBeforeLast('.')}") // Tag without extension
 
             while (entries.hasMoreElements()) {
                 val entry = entries.nextElement()
