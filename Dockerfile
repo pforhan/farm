@@ -1,6 +1,6 @@
 # farm/Dockerfile
 # Use an official OpenJDK image as the base for the Ktor backend
-FROM openjdk:17-jdk-slim
+FROM openjdk:21-jdk-slim
 
 # Set environment variables
 ENV APP_HOME=/app

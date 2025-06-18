@@ -14,7 +14,6 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import java.awt.Image
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths

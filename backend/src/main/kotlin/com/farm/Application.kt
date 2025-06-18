@@ -84,6 +84,8 @@ fun Application.module() {
         //         }
         //         challenge("/login") // Redirect to login page on failed authentication
         //     }
+        // }
+        // install(Authentication) {
         //     session<UserSession>("auth-session") {
         //         // TODO: Configure session-based authentication for authenticated routes
         //         validate { session ->
