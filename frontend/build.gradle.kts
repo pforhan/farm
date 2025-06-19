@@ -3,7 +3,7 @@
 plugins {
     kotlin("multiplatform")
     id("org.jetbrains.compose")
-    id("org.jetbrains.kotlin.plugin.serialization") // For kotlinx.serialization
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.2.0-RC3" // For kotlinx.serialization
 }
 
 group = "com.farm"

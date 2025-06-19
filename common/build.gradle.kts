@@ -13,7 +13,7 @@ repositories {
 }
 
 kotlin {
-    jvmToolchain(17) // Use Java 17 for JVM compilation
+    jvmToolchain(21) // Use Java 21 for JVM compilation
 }
 
 dependencies {

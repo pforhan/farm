@@ -2,7 +2,7 @@
 
 plugins {
     kotlin("jvm")
-    id("org.jetbrains.kotlin.plugin.serialization") // For data classes if serialized
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.2.0-RC3" // For data classes if serialized
 }
 
 group = "com.farm"
@@ -13,7 +13,7 @@ repositories {
 }
 
 kotlin {
-    jvmToolchain(17) // Use Java 17 for JVM compilation
+    jvmToolchain(21) // Use Java 21 for JVM compilation
 }
 
 dependencies {

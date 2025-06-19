@@ -1,4 +1,5 @@
 # .gitignore for Farm Digital Asset Manager
+.gradle/
 
 # Configuration file (contains sensitive data)
 .env
