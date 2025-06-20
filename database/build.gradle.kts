@@ -1,8 +1,8 @@
 // farm/database/build.gradle.kts
 
 plugins {
-    kotlin("jvm")
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.2.0-RC3" // For data classes if serialized
+    kotlin("jvm") // Applied explicitly
+    alias(libs.plugins.kotlin.plugin.serialization) // Reference Kotlinx Serialization plugin from TOML
 }
 
 group = "com.farm"
@@ -13,32 +13,32 @@ repositories {
 }
 
 kotlin {
-    jvmToolchain(21) // Use Java 21 for JVM compilation
+    jvmToolchain(21) // Use Java 21 for JVM compilation, consistent with Dockerfile
 }
 
 dependencies {
     // Exposed Framework
-    implementation("org.jetbrains.exposed:exposed-core:0.49.0")
-    implementation("org.jetbrains.exposed:exposed-dao:0.49.0")
-    implementation("org.jetbrains.exposed:exposed-jdbc:0.49.0") // For JDBC connections
-    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:0.49.0") // If using Kotlinx DateTime
+    implementation(libs.exposed.core) // Reference from TOML
+    implementation(libs.exposed.dao) // Reference from TOML
+    implementation(libs.exposed.jdbc) // Reference from TOML
+    implementation(libs.exposed.kotlin.datetime) // Reference from TOML
 
     // Database Driver (MySQL)
-    implementation("mysql:mysql-connector-java:8.0.33") // MySQL Connector
+    implementation(libs.mysql.connector.java) // Reference from TOML
 
     // Connection Pool (HikariCP recommended)
-    implementation("com.zaxxer:HikariCP:5.1.0")
+    implementation(libs.hikari.cp) // Reference from TOML
 
     // Kotlinx Coroutines for asynchronous database access
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    implementation(libs.kotlinx.coroutines.core) // Reference from TOML
 
     // Project Dependency
     implementation(project(":common")) // For accessing common data models
 
     // Logging
-    implementation("org.slf4j:slf4j-simple:1.7.36") // For database connection logging
+    implementation(libs.slf4j.simple) // Reference from TOML
 
     // Testing
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.9.23")
-    testImplementation("com.h2database:h2:2.2.224") // H2 for in-memory database testing
+    testImplementation(libs.kotlin.test.junit) // Reference from TOML
+    testImplementation(libs.h2.database) // Reference from TOML
 }

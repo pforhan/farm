@@ -7,15 +7,14 @@ pluginManagement {
         gradlePluginPortal()
         mavenCentral()
         maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
-        maven { url = uri("https://maven.pkg.jetbrains.space/public/p/ktor/eap") }
+        maven("https://maven.pkg.jetbrains.space/public/p/ktor/eap") // Keep Ktor EAP here for plugin resolution
     }
-}
-
-plugins {
-    // Apply the Kotlin JVM plugin to the root project to enable Kotlin DSL in settings.gradle.kts
-    id("org.jetbrains.kotlin.jvm") version "1.9.23" apply false
-    // Apply the Compose Multiplatform plugin to the root project
-    id("org.jetbrains.compose") version "1.6.10" apply false
+    // Use version catalogs for plugin versions where appropriate (e.g., in build.gradle.kts files)
+    // For pluginManagement in settings.gradle.kts, direct version strings or resolution from repositories.
+    plugins {
+        id("org.jetbrains.kotlin.jvm") version "1.9.23" // Direct version, matching libs.versions.toml
+        id("org.jetbrains.compose") version "1.6.10" // Direct version, matching libs.versions.toml
+    }
 }
 
 // Include the individual modules for backend, database, common, and frontend

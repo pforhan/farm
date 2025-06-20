@@ -17,10 +17,9 @@ COPY backend $APP_HOME/backend
 COPY common $APP_HOME/common
 COPY database $APP_HOME/database
 COPY frontend $APP_HOME/frontend
-COPY public $APP_HOME/public
-# Copy public/uploads and public/previews directories
-# COPY var $APP_HOME/var # Copy var/logs and var/cache directories
-# COPY docs $APP_HOME/docs # Copy docs for database.sql, etc.
+COPY public $APP_HOME/public # Copy public/uploads and public/previews directories
+COPY var $APP_HOME/var # Copy var/logs and var/cache directories
+COPY docs $APP_HOME/docs # Copy docs for database.sql, etc.
 
 # Build the Ktor application and the Compose Multiplatform frontend for web
 # Frontend build command: ./gradlew frontend:jsBrowserProductionWebpack

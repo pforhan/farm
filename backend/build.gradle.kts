@@ -1,9 +1,9 @@
 // farm/backend/build.gradle.kts
 
 plugins {
-    kotlin("jvm")
-    id("io.ktor.plugin") version "3.2.0" // Ktor plugin
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.23" // Kotlinx Serialization plugin
+    kotlin("jvm") // Applied explicitly
+    alias(libs.plugins.ktor) // Reference Ktor plugin from TOML
+    alias(libs.plugins.kotlin.plugin.serialization) // Reference Kotlinx Serialization plugin from TOML
 }
 
 group = "com.farm"
@@ -13,26 +13,31 @@ application {
     mainClass.set("com.farm.ApplicationKt") // Ktor application entry point
 }
 
+repositories {
+    mavenCentral()
+    // Other repositories inherited from allprojects in settings.gradle.kts
+}
+
 dependencies {
     // Project Dependencies
     implementation(project(":common")) // Backend depends on common for shared models
     implementation(project(":database")) // Backend depends on database for data access
 
     // Ktor Core
-    implementation("io.ktor:ktor-server-core-jvm:2.3.9")
-    implementation("io.ktor:ktor-server-netty:2.3.9") // For Netty server engine
-    implementation("io.ktor:ktor-server-content-negotiation:2.3.9") // For JSON handling
-    implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.9") // For kotlinx.serialization JSON
+    implementation(libs.ktor.server.core.jvm) // Reference from TOML
+    implementation(libs.ktor.server.netty) // Reference from TOML
+    implementation(libs.ktor.server.content.negotiation) // Reference from TOML
+    implementation(libs.ktor.serialization.kotlinx.json) // Reference from TOML
 
     // Ktor Features (example, add as needed)
-    implementation("io.ktor:ktor-server-status-pages:2.3.9") // For error handling
-    implementation("io.ktor:ktor-server-sessions:2.3.9") // If user sessions are needed (TODO for auth)
-    implementation("io.ktor:ktor-server-auth:2.3.9") // For user authentication (TODO for auth)
-    implementation("io.ktor:ktor-server-call-logging:2.3.9") // For request logging
+    implementation(libs.ktor.server.status.pages) // Reference from TOML
+    implementation(libs.ktor.server.sessions) // If user sessions are needed (TODO for auth)
+    implementation(libs.ktor.server.auth) // For user authentication (TODO for auth)
+    implementation(libs.ktor.server.call.logging) // For request logging
 
     // Ktor Static Content (to serve frontend files)
-    implementation("io.ktor:ktor-server-host-common:2.3.9")
-    implementation("io.ktor:ktor-server-http-netty:2.3.9")
+    implementation(libs.ktor.server.host.common)
+    implementation(libs.ktor.server.http.netty)
 
     // Image Processing for thumbnails
     // Java AWT ImageIO is usually available with JVM, but explicitly mentioning its use
@@ -41,15 +46,15 @@ dependencies {
     // implementation("com.sksamuel.scrimage:scrimage-core:4.0.0") // Example, would add more dependencies
 
     // Logging (Slf4j simple implementation)
-    implementation("org.slf4j:slf4j-simple:1.7.36")
+    implementation(libs.slf4j.simple) // Reference from TOML
 
     // For file system operations
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    implementation(libs.kotlinx.coroutines.core) // Reference from TOML
 
     // Testing
-    testImplementation("io.ktor:ktor-server-tests-jvm:2.3.9")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.9.23")
-    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1") // For mocking in tests
+    testImplementation(libs.ktor.server.tests.jvm) // Reference from TOML
+    testImplementation(libs.kotlin.test.junit) // Reference from TOML
+    testImplementation(libs.mockito.kotlin) // Reference from TOML
 }
 
 // Task to create necessary directories for uploads and previews on build
