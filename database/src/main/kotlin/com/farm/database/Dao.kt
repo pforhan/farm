@@ -1,13 +1,15 @@
-// farm/database/src/main/kotlin/com/farm/database/Dao.kt
 package com.farm.database
 
 import com.farm.common.Asset
 import com.farm.common.FileDetail
 import com.farm.common.UpdateAssetRequest
 import com.farm.database.DatabaseFactory.dbQuery
-import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.like
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.v1.core.* // Changed import
+import org.jetbrains.exposed.sql.v1.core.query.SqlExpressionBuilder.like // Changed import
+import org.jetbrains.exposed.sql.v1.core.query.SqlExpressionBuilder.eq // Changed import
+import org.jetbrains.exposed.dao.v1.id.IntIdTable // Changed import
+import org.jetbrains.exposed.dao.v1.id.EntityID // Changed import
+import org.jetbrains.exposed.sql.v1.core.transactions.transaction // Changed import
 import java.io.File
 import java.nio.file.Paths
 
@@ -84,21 +86,34 @@ object Dao {
     suspend fun searchAssets(query: String): List<Asset> = dbQuery {
         val searchQuery = "%$query%"
 
-        (Assets innerJoin Tags.optionalJoin(AssetTags, { Tags.id }, { AssetTags.tag }, { AssetTags.asset eq Assets.id }))
-            .select(Assets.columns) // Select all columns from Assets table
-            .where {
+        // First, find the IDs of assets that match the search criteria using left joins
+        val matchingAssetIds = (Assets
+            .leftJoin(Stores, { Assets.store eq Stores.id })
+            .leftJoin(Authors, { Assets.author eq Authors.id })
+            .leftJoin(Licenses, { Assets.license eq Licenses.id })
+            .leftJoin(AssetTags, { Assets.id eq AssetTags.asset })
+            .leftJoin(Tags, { AssetTags.tag eq Tags.id })
+        )
+            .slice(Assets.id) // Only select the asset ID to avoid fetching unnecessary data
+            .select {
                 (Assets.assetName like searchQuery) or
-                        (Tags.tagName like searchQuery) or
-                        (Assets.store.inSubQuery(Stores.select(Stores.id).where { Stores.storeName like searchQuery })) or
-                        (Assets.author.inSubQuery(Authors.select(Authors.id).where { Authors.authorName like searchQuery })) or
-                        (Assets.license.inSubQuery(Licenses.select(Licenses.id).where { Licenses.licenseName like searchQuery }))
+                (Stores.storeName.nullable() like searchQuery) or
+                (Authors.authorName.nullable() like searchQuery) or
+                (Licenses.licenseName.nullable() like searchQuery) or
+                (Tags.tagName.nullable() like searchQuery)
             }
-            .orderBy(Assets.id to SortOrder.DESC)
-            .distinct() // Ensure unique assets
-            .map {
-                val assetEntity = AssetEntity.wrapRow(it) // Wrap the row back into an Entity
-                toCommonAsset(assetEntity)
-            }
+            .orderBy(Assets.id to SortOrder.DESC) // Order the results
+            .distinct() // Get unique asset IDs
+            .map { it[Assets.id].value } // Extract the integer value of the asset ID
+
+        // If no assets match the search criteria, return an empty list
+        if (matchingAssetIds.isEmpty()) {
+            emptyList()
+        } else {
+            // Otherwise, fetch the full AssetEntity objects for the matched IDs
+            AssetEntity.find { Assets.id inList matchingAssetIds }
+                .map(::toCommonAsset) // Convert to common.Asset data class
+        }
     }
 
 

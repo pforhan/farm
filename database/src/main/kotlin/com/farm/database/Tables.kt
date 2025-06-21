@@ -1,11 +1,12 @@
 // farm/database/src/main/kotlin/com/farm/database/Tables.kt
 package com.farm.database
 
-import org.jetbrains.exposed.dao.IntEntity
-import org.jetbrains.exposed.dao.IntEntityClass
-import org.jetbrains.exposed.dao.id.EntityID
-import org.jetbrains.exposed.dao.id.IntIdTable
-import org.jetbrains.exposed.sql.Column
+import org.jetbrains.exposed.dao.v1.IntEntity
+import org.jetbrains.exposed.dao.v1.IntEntityClass
+import org.jetbrains.exposed.dao.v1.id.EntityID
+import org.jetbrains.exposed.dao.v1.id.IntIdTable
+import org.jetbrains.exposed.sql.v1.core.Column
+import org.jetbrains.exposed.sql.v1.core.optionalReferencedOn // Added for optionalReferencedOn
 
 // Tables for relational entities
 object Stores : IntIdTable("stores") {

@@ -3,12 +3,11 @@ package com.farm.database
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.transactions.transaction
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.sql.v1.core.Database
+import org.jetbrains.exposed.sql.v1.core.SchemaUtils
+import org.jetbrains.exposed.sql.v1.core.transactions.transaction
+import org.jetbrains.exposed.sql.v1.core.transactions.experimental.newSuspendedTransaction
+import kotlinx.coroutines.Dispatchers // Still need this for Dispatchers.IO
 
 object DatabaseFactory {
 

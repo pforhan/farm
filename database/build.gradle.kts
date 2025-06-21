@@ -17,7 +17,10 @@ kotlin {
 }
 
 dependencies {
-    // Exposed Framework
+    // Exposed Framework - Updated to 1.0.0-beta-2
+    // You should also update your libs.versions.toml file accordingly:
+    // [versions]
+    // exposed = "1.0.0-beta-2"
     implementation(libs.exposed.core) // Reference from TOML
     implementation(libs.exposed.dao) // Reference from TOML
     implementation(libs.exposed.jdbc) // Reference from TOML

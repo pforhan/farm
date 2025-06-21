@@ -158,7 +158,7 @@ fun Route.assetRoutes(dao: Dao) {
 
                 dao.addFileToAsset(
                     assetId = assetId,
-                    fileName = originalFileName,
+                    fileName = originalFileName.substringAfterLast('/'), // Only store filename, not full path in DB
                     filePath = targetFile.absolutePath,
                     fileSize = fileSize,
                     fileType = fileType,

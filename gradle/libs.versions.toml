@@ -5,7 +5,7 @@ compose = "1.6.10" # JetBrains Compose Multiplatform version
 ktor = "2.3.9" # Ktor server and client version
 kotlinx-serialization-json = "1.6.3"
 kotlinx-coroutines = "1.7.3"
-exposed = "0.49.0"
+exposed = "1.0.0-beta-2"
 mysql-connector-java = "8.0.33"
 hikari-cp = "5.1.0"
 slf4j-simple = "1.7.36"
@@ -32,7 +32,7 @@ ktor-server-sessions = { module = "io.ktor:ktor-server-sessions", version.ref = 
 ktor-server-auth = { module = "io.ktor:ktor-server-auth", version.ref = "ktor" }
 ktor-server-call-logging = { module = "io.ktor:ktor-server-call-logging", version.ref = "ktor" }
 ktor-server-host-common = { module = "io.ktor:ktor-server-host-common", version.ref = "ktor" }
-ktor-server-http-netty = { module = "io.ktor:ktor-server-http-netty", version.ref = "ktor" }
+# ktor-server-http-netty = { module = "io.ktor:ktor-server-http-netty", version.ref = "ktor" }
 ktor-server-tests-jvm = { module = "io.ktor:ktor-server-tests-jvm", version.ref = "ktor" }
 
 # Ktor Client (for frontend)

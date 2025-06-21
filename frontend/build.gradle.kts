@@ -16,9 +16,10 @@ repositories {
 
 kotlin {
     jvm() // For desktop (if needed later)
-    iosX64() // For iOS simulator (if needed later)
-    iosArm64() // For iOS device (if needed later)
-    iosSimulatorArm64() // For iOS simulator (if needed later)
+    // Removed iOS targets entirely from here, user wants them commented out.
+    // iosX64() // For iOS simulator (if needed later)
+    // iosArm64() // For iOS device (if needed later)
+    // iosSimulatorArm64() // For iOS simulator (if needed later)
 
     js(IR) {
         browser()
@@ -66,69 +67,56 @@ kotlin {
                 implementation(libs.ktor.client.js) // Reference from TOML
             }
         }
-        val iosMain by getting {
-            dependencies {
-                // For iOS app
-                implementation(libs.ktor.client.darwin) // Reference from TOML
-            }
-        }
+//        val iosMain by getting { // This block was commented out by user, keeping it that way.
+//            dependencies {
+//                // For iOS app
+//                implementation(libs.ktor.client.darwin) // Reference from TOML
+//            }
+//        }
     }
 }
 
 compose.experimental {
     // Removed: web.target = org.jetbrains.compose.web.targets.WebTarget.BROWSER (handled by js(IR) { browser() })
     // If you want to enable WebAssembly (Wasm) target for Compose Multiplatform Web:
-    // web.target = org.jetbrains.compose.web.targets.WebTarget.WASM
+    // web.target = org.jetbrains.compose.web.targets.WASM
     // This requires Kotlin 1.9.20+ and still experimental.
 }
 
-// Configure JS assets output path for Ktor to serve
-tasks.named<org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpack>("jsProcessResources") {
-    outputFileName = "main.js" // Renames the output JS bundle
-    webpackTask {
-        output.path = layout.projectDirectory.dir("backend/src/main/resources/static/js").get().asFile.absolutePath
-    }
-}
+// Task to copy frontend web assets to the backend's static resources directory
+val copyWebAssetsToBackend by tasks.registering(Copy::class) {
+    // Ensure the production webpack bundle is built
+    dependsOn(tasks.named("jsBrowserProductionWebpack"))
 
-tasks.named<org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpack>("jsBrowserDevelopmentWebpack") {
-    outputFileName = "main.js"
-    webpackTask {
-        output.path = layout.projectDirectory.dir("backend/src/main/resources/static/js").get().asFile.absolutePath
-    }
-}
+    // Define the source directory for compiled JS and resource files
+    val jsDistributionDir = layout.buildDirectory.dir("distributions/frontend").get().asFile
+    val jsMainResourcesDir = kotlin.sourceSets.getByName("jsMain").resources.sourceDirectories.singleFile
 
-tasks.named<org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpack>("jsBrowserProductionWebpack") {
-    outputFileName = "main.js"
-    webpackTask {
-        output.path = layout.projectDirectory.dir("backend/src/main/resources/static/js").get().asFile.absolutePath
-    }
-}
+    // Define the destination directory in the backend's static resources
+    val backendStaticDir = project(":backend").projectDir.resolve("src/main/resources/static")
 
-// Copy index.html and styles.css to backend resources as well
-tasks.named<Copy>("jsProcessResources") {
-    val frontendResourcesDir = project.rootDir.resolve("backend/src/main/resources/static")
-    from(kotlin.sourceSets.getByName("jsMain").resources) { // Corrected access to jsMain
+    // Copy JS files (main.js, skiko.js) from the distribution directory
+    from(jsDistributionDir) {
+        include("*.js") // This should include main.js and skiko.js
+    }
+    into(backendStaticDir.resolve("js")) // Copy JS files into a 'js' subdirectory
+
+    // Copy HTML and CSS files from jsMain resources
+    from(jsMainResourcesDir) {
         include("index.html")
         include("styles.css")
     }
-    into(frontendResourcesDir)
+    into(backendStaticDir) // Copy HTML and CSS directly into the static root
 }
 
-// Task to assemble the frontend for the backend to serve
-val assembleFrontend by tasks.registering(Copy::class) {
-    dependsOn(tasks.named("jsBrowserProductionWebpack")) // Ensure JS bundle is built
-    val frontendBuildDir = project.buildDir.resolve("distributions")
-    val backendStaticDir = project(":backend").projectDir.resolve("src/main/resources/static")
+// Removed the explicit dependency of backend's jar task on copyWebAssetsToBackend.
+// The Dockerfile build process orchestrates these tasks, ensuring correct order.
 
-    from(frontendBuildDir) {
-        include("*.js") // The main JS bundle
-    }
-    from(kotlin.sourceSets.getByName("jsMain").resources) { // Corrected access to jsMain
-        include("*.html") // index.html
-        include("*.css") // styles.css
-    }
-    into(backendStaticDir)
+// Optional: To also configure development webpack output for local testing outside Docker
+/*
+tasks.named<org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpack>("jsBrowserDevelopmentWebpack") {
+    // You can set an output directory here if you want it to differ from default
+    // For example:
+    // destinationDirectory.set(project.buildDir.resolve("development-frontend-dist"))
 }
-tasks.named("jar", type = Jar::class) {
-    dependsOn(assembleFrontend) // Ensure frontend is assembled before backend JAR
-}
+*/

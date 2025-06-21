@@ -13,6 +13,10 @@ application {
     mainClass.set("com.farm.ApplicationKt") // Ktor application entry point
 }
 
+kotlin {
+    jvmToolchain(21) // Use Java 21 for JVM compilation, consistent with Dockerfile
+}
+
 repositories {
     mavenCentral()
     // Other repositories inherited from allprojects in settings.gradle.kts
@@ -25,7 +29,7 @@ dependencies {
 
     // Ktor Core
     implementation(libs.ktor.server.core.jvm) // Reference from TOML
-    implementation(libs.ktor.server.netty) // Reference from TOML
+    implementation(libs.ktor.server.netty) // Reference from TOML (This is the Ktor Netty server engine dependency)
     implementation(libs.ktor.server.content.negotiation) // Reference from TOML
     implementation(libs.ktor.serialization.kotlinx.json) // Reference from TOML
 
@@ -37,7 +41,6 @@ dependencies {
 
     // Ktor Static Content (to serve frontend files)
     implementation(libs.ktor.server.host.common)
-    implementation(libs.ktor.server.http.netty)
 
     // Image Processing for thumbnails
     // Java AWT ImageIO is usually available with JVM, but explicitly mentioning its use

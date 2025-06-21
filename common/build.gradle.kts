@@ -1,7 +1,7 @@
 // farm/common/build.gradle.kts
 
 plugins {
-    kotlin("jvm") // Applied explicitly
+    kotlin("multiplatform") // Changed to multiplatform
     alias(libs.plugins.kotlin.plugin.serialization) // Reference Kotlinx Serialization plugin from TOML
 }
 
@@ -13,10 +13,27 @@ repositories {
 }
 
 kotlin {
-    jvmToolchain(21) // Use Java 21 for JVM compilation, consistent with Dockerfile
-}
+    jvm() // Define JVM target for backend
+    js() { // Define JS target for frontend
+        browser()
+    }
+    // If you need more targets (e.g., iOS), add them here:
+    // iosX64()
+    // iosArm64()
+    // iosSimulatorArm64()
 
-dependencies {
-    // Kotlinx Serialization runtime
-    implementation(libs.kotlinx.serialization.json) // Reference from TOML
+    sourceSets {
+        val commonMain by getting {
+            dependencies {
+                implementation(libs.kotlinx.serialization.json)
+            }
+        }
+        val jvmMain by getting {
+            // JVM-specific dependencies for common module, if any
+            // For now, it might be empty as models are generally platform-agnostic
+        }
+        val jsMain by getting {
+            // JS-specific dependencies for common module, if any
+        }
+    }
 }
