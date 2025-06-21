@@ -1,12 +1,11 @@
 // farm/database/src/main/kotlin/com/farm/database/Tables.kt
 package com.farm.database
 
-import org.jetbrains.exposed.dao.v1.IntEntity
-import org.jetbrains.exposed.dao.v1.IntEntityClass
-import org.jetbrains.exposed.dao.v1.id.EntityID
-import org.jetbrains.exposed.dao.v1.id.IntIdTable
-import org.jetbrains.exposed.sql.v1.core.Column
-import org.jetbrains.exposed.sql.v1.core.optionalReferencedOn // Added for optionalReferencedOn
+import org.jetbrains.exposed.v1.core.Column
+import org.jetbrains.exposed.v1.core.dao.id.EntityID
+import org.jetbrains.exposed.v1.core.dao.id.IntIdTable
+import org.jetbrains.exposed.v1.dao.IntEntity
+import org.jetbrains.exposed.v1.dao.IntEntityClass
 
 // Tables for relational entities
 object Stores : IntIdTable("stores") {
@@ -100,13 +99,11 @@ class FileEntity(id: EntityID<Int>) : IntEntity(id) {
 object AssetTags : IntIdTable("asset_tags") {
     val asset = reference("asset_id", Assets)
     val tag = reference("tag_id", Tags)
-    override val primaryKey = PrimaryKey(asset, tag)
 }
 
 object AssetProjects : IntIdTable("asset_projects") {
     val asset = reference("asset_id", Assets)
     val project = reference("project_id", Projects)
-    override val primaryKey = PrimaryKey(asset, project)
 }
 
 // TODO: User, Role, Permission tables for future authentication
