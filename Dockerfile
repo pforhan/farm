@@ -1,43 +1,68 @@
 # farm/Dockerfile
-# Use an official OpenJDK image as the base for the Ktor backend
-FROM openjdk:21-jdk-slim
+# This Dockerfile will build both the Kotlin Ktor backend and the React/TypeScript frontend,
+# and then package them into a single image where the Ktor app serves the static React files.
 
-# Set environment variables
+# --- Stage 1: Build the React Frontend ---
+FROM node:18-alpine as frontend-builder
+
+WORKDIR /app/frontend-react
+
+# Copy package.json and package-lock.json (or yarn.lock) for dependency caching
+COPY frontend-react/package.json ./
+# If you use yarn, copy yarn.lock as well:
+# COPY frontend-react/yarn.lock ./
+
+# Install frontend dependencies
+RUN npm install
+
+# Copy the rest of the frontend source code
+COPY frontend-react/ ./
+
+# Build the React application
+# This command typically creates a 'dist' or 'build' directory with static files
+RUN npm run build
+
+
+# --- Stage 2: Build the Kotlin Ktor Backend ---
+FROM openjdk:21-jdk-slim as backend-builder
+
 ENV APP_HOME=/app
-
-# Create app directory
 WORKDIR $APP_HOME
 
-# Copy the Gradle wrapper and build files
+# Copy Gradle wrapper and build files
 COPY gradlew $APP_HOME/
-COPY gradle $APP_HOME/gradle
+COPY gradle $APP_HOME/gradle/
 COPY settings.gradle.kts $APP_HOME/
 COPY build.gradle.kts $APP_HOME/
-COPY backend $APP_HOME/backend
-COPY common $APP_HOME/common
-COPY database $APP_HOME/database
-COPY frontend $APP_HOME/frontend
-COPY public $APP_HOME/public # Copy public/uploads and public/previews directories
-COPY var $APP_HOME/var # Copy var/logs and var/cache directories
-COPY docs $APP_HOME/docs # Copy docs for database.sql, etc.
 
-# Build the Ktor application and the Compose Multiplatform frontend for web
-# Frontend build command: ./gradlew frontend:jsBrowserProductionWebpack
-# Backend build command: ./gradlew backend:installDist
-# This task chain ensures frontend assets are copied to backend resources before backend JAR is built.
+# Copy Kotlin modules for backend build
+COPY backend $APP_HOME/backend/
+COPY common $APP_HOME/common/
+COPY database $APP_HOME/database/
+COPY public $APP_HOME/public/ # For uploads and previews directories
+COPY var $APP_HOME/var/ # For logs and cache directories
+COPY docs $APP_HOME/docs/ # For database.sql, etc.
+
+# Build the Ktor application JAR
+# This will also run the 'createDirs' task to ensure public/var dirs exist
 RUN chmod +x ./gradlew && ./gradlew backend:installDist
 
-# Use the distribution created by installDist
-WORKDIR $APP_HOME/backend/build/install/backend/bin
+# --- Stage 3: Create the Final Production Image ---
+FROM openjdk:21-jdk-slim
 
-# Expose Ktor's default port
-EXPOSE 8080
+ENV APP_HOME=/app
+WORKDIR $APP_HOME
 
-# Command to run the application
-CMD ["./backend"]
+# Copy the backend distribution from the backend-builder stage
+COPY --from=backend-builder $APP_HOME/backend/build/install/backend /app/backend-dist
+
+# Copy the built React frontend static files from the frontend-builder stage
+# These files will be served by Ktor's static content feature from src/main/resources/static
+COPY --from=frontend-builder /app/frontend-react/build /app/backend-dist/lib/src/main/resources/static/
 
 # Adjust permissions for directories that need to be writable by the application
 # These are mounted from host volumes, so this is mainly for safety within the container.
+# They are relative to the Ktor application's working directory within the container, which is /app
 RUN mkdir -p $APP_HOME/public/uploads && \
     mkdir -p $APP_HOME/public/previews && \
     mkdir -p $APP_HOME/var/logs && \
@@ -50,3 +75,9 @@ RUN mkdir -p $APP_HOME/public/uploads && \
     chmod -R 777 $APP_HOME/public/previews && \
     chmod -R 777 $APP_HOME/var/logs && \
     chmod -R 777 $APP_HOME/var/cache
+
+# Set the entry point to run the Ktor application
+WORKDIR /app/backend-dist/bin
+CMD ["./backend"]
+
+EXPOSE 8080

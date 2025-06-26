@@ -18,10 +18,10 @@ services:
       - "${APP_PORT:-6118}:8080"
     volumes:
       # Mount relevant directories for logs, uploads, previews
-      - ./public/uploads:/var/www/html/public/uploads # Consistent path for file storage
-      - ./public/previews:/var/www/html/public/previews # Consistent path for previews
-      - ./var/logs:/var/www/html/var/logs # Logs for Ktor app
-      - ./var/cache:/var/www/html/var/cache # Cache directory
+      - ./public/uploads:/app/public/uploads # Consistent with Ktor's file handling
+      - ./public/previews:/app/public/previews # Consistent with Ktor's file handling
+      - ./var/logs:/app/var/logs # Logs for Ktor app
+      - ./var/cache:/app/var/cache # Cache directory
     env_file:
       - ./.env # Load database credentials and other env vars
     networks:
