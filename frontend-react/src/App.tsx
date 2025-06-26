@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'; // Removed unused React import
+import { useState, useEffect } from 'react';
 import { UploadForm } from './components/UploadForm';
 import { BrowseAssets } from './components/BrowseAssets';
 import { AssetDetailsScreen } from './components/AssetDetailsScreen';
@@ -18,7 +18,7 @@ function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>({ name: 'Browse' });
   const [message, setMessage] = useState<string | null>(null);
   const [isError, setIsError] = useState<boolean>(false);
-  const [searchQuery, useStateSearchQuery] = useState<string>(''); // Renamed to avoid conflict
+  const [searchQuery, useStateSearchQuery] = useState<string>('');
 
   // Global message display effect
   useEffect(() => {
@@ -77,7 +77,7 @@ function App() {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => useStateSearchQuery(e.target.value)} // Updated onChange
+              onChange={(e) => useStateSearchQuery(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   handleSearchSubmit();
@@ -114,15 +114,15 @@ function App() {
             <UploadForm
               onUploadSuccess={(assetId, msg) => {
                 handleMessage(msg);
-                navigate({ name: 'AssetDetails', assetId: assetId });
+                navigate({ name: 'AssetDetails', assetId });
               }}
               onUploadError={(errorMsg) => handleMessage(`Upload Error: ${errorMsg}`, true)}
             />
           )}
           {currentScreen.name === 'Browse' && (
             <BrowseAssets
-              onAssetClick={(assetId) => navigate({ name: 'AssetDetails', assetId: assetId })}
-              onEditClick={(assetId) => navigate({ name: 'EditAsset', assetId: assetId })}
+              onAssetClick={(assetId) => navigate({ name: 'AssetDetails', assetId })}
+              onEditClick={(assetId) => navigate({ name: 'EditAsset', assetId })}
               onMessage={handleMessage}
             />
           )}
@@ -130,9 +130,7 @@ function App() {
             <AssetDetailsScreen
               assetId={currentScreen.assetId}
               onBackClick={() => navigate({ name: 'Browse' })}
-              onEditClick={(assetId) => {
-                navigate({ name: 'EditAsset', assetId: assetId });
-              }}
+              onEditClick={(assetId) => navigate({ name: 'EditAsset', assetId })}
               onMessage={handleMessage}
             />
           )}
@@ -150,8 +148,8 @@ function App() {
           {currentScreen.name === 'SearchResults' && (
             <SearchResultsScreen
               query={currentScreen.query}
-              onAssetClick={(assetId) => navigate({ name: 'AssetDetails', assetId: assetId })}
-              onEditClick={(assetId) => navigate({ name: 'EditAsset', assetId: assetId })}
+              onAssetClick={(assetId) => navigate({ name: 'AssetDetails', assetId })}
+              onEditClick={(assetId) => navigate({ name: 'EditAsset', assetId })}
               onMessage={handleMessage}
             />
           )}

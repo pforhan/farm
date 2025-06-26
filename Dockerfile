@@ -12,6 +12,9 @@ COPY frontend-react/package.json ./
 # If you use yarn, copy yarn.lock as well:
 # COPY frontend-react/yarn.lock ./
 
+# Copy vite.config.ts (required for Vite to correctly resolve paths)
+COPY frontend-react/vite.config.ts ./
+
 # Install frontend dependencies
 RUN npm install
 

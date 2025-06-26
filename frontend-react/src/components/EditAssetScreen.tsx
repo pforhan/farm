@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'; // Removed unused React and Asset imports
-import { UpdateAssetRequest } from '../types/models'; // Removed unused Asset import
+import { useState, useEffect } from 'react';
+import { UpdateAssetRequest } from '../types/models';
 import { FarmApiClient } from '../api/farmApiClient';
 import { Loader2, Save, XCircle } from 'lucide-react'; // Icons
 

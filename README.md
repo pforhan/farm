@@ -30,6 +30,9 @@ farm/
 │   ├── src/            # React components, TypeScript files, API client
 │   ├── package.json    # Node.js dependencies for React
 │   ├── tailwind.config.js # Tailwind CSS configuration
+│   ├── tsconfig.json   # TypeScript configuration for React source
+│   ├── tsconfig.node.json # TypeScript configuration for Node.js environment (e.g., Vite config)
+│   ├── vite.config.ts  # Vite configuration for development server and build
 │   └── ...             # Other React/TypeScript config files
 ├── public/             # Host-mounted directories for uploaded files and previews (Docker volumes)
 │   ├── uploads/        # Actual uploaded files
