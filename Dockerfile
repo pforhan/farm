@@ -35,13 +35,12 @@ COPY gradle $APP_HOME/gradle/
 COPY settings.gradle.kts $APP_HOME/
 COPY build.gradle.kts $APP_HOME/
 
-# Copy Kotlin modules for backend build
 COPY backend $APP_HOME/backend/
 COPY common $APP_HOME/common/
 COPY database $APP_HOME/database/
-# For uploads and previews directories
+# Copy public/uploads and public/previews directories
 COPY public $APP_HOME/public/
-# For logs and cache directories
+# Copy var/logs and var/cache directories
 COPY var $APP_HOME/var/
 
 # Build the Ktor application JAR

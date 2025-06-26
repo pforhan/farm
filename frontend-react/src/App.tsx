@@ -130,7 +130,7 @@ function App() {
             <AssetDetailsScreen
               assetId={currentScreen.assetId}
               onBackClick={() => navigate({ name: 'Browse' })}
-              onEditClick={(assetId) => navigate({ name: 'EditAsset', assetId })} {/* Corrected 'id' to 'assetId' */}
+              onEditClick={(assetId) => navigate({ name: 'EditAsset', assetId: assetId })} {/* Made assetId explicit */}
               onMessage={handleMessage}
             />
           )}
