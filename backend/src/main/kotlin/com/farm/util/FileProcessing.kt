@@ -2,23 +2,20 @@
 package com.farm.util
 
 import com.farm.database.Dao
+import java.awt.Image
 import java.awt.image.BufferedImage
 import java.io.File
-import java.net.URL
-import java.util.zip.ZipFile
-import javax.imageio.ImageIO
-import java.awt.Image
-import java.awt.RenderingHints
-import java.io.ByteArrayOutputStream
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.util.Locale
 import java.util.UUID
+import java.util.zip.ZipFile
+import javax.imageio.ImageIO
 
 // Constants for file storage (re-declared here for clarity in this utility file)
 val UPLOAD_DIR_UTIL = Paths.get(System.getProperty("user.dir"), "public", "uploads").toFile()
 val PREVIEW_DIR_UTIL = Paths.get(System.getProperty("user.dir"), "public", "previews").toFile()
 val ALLOWED_TYPES_UTIL = setOf("zip", "png", "jpg", "jpeg", "gif", "wav", "mp3", "ogg", "txt", "md", "html", "json", "xml")
-
 
 /**
  * Generates a thumbnail for an image file.
@@ -42,7 +39,7 @@ fun generateThumbnail(sourceFile: File, destinationFile: File, width: Int, heigh
         g2d.dispose()
 
         // Preserve transparency for PNG and GIF (more robust way)
-        val fileExtension = destinationFile.extension.toLowerCase()
+        val fileExtension = destinationFile.extension.lowercase(Locale.getDefault())
         val imageType = originalImage.type
         val outputFormat: String = when (fileExtension) {
             "png" -> "png"
@@ -79,7 +76,7 @@ fun generateThumbnail(sourceFile: File, destinationFile: File, width: Int, heigh
  * @param originalArchiveFileName The original filename of the uploaded ZIP archive.
  * @return True if ZIP processing was successful, false otherwise.
  */
-fun processZipFile(zipFile: File, assetId: Int, dao: Dao, originalArchiveFileName: String): Boolean {
+suspend fun processZipFile(zipFile: File, assetId: Int, dao: Dao, originalArchiveFileName: String): Boolean {
     return try {
         ZipFile(zipFile).use { zip ->
             val entries = zip.entries()
@@ -148,7 +145,7 @@ fun processZipFile(zipFile: File, assetId: Int, dao: Dao, originalArchiveFileNam
  * @param fullFilePath The full path or name of the file (can be a filename or path within zip).
  * @param dao The DAO for database operations.
  */
-fun generateFilenameTags(assetId: Int, fullFilePath: String, dao: Dao) {
+suspend fun generateFilenameTags(assetId: Int, fullFilePath: String, dao: Dao) {
     val fileName = fullFilePath.substringAfterLast(File.separatorChar) // Get just the filename
     val nameWithoutExt = fileName.substringBeforeLast('.', "")
 
@@ -165,7 +162,7 @@ fun generateFilenameTags(assetId: Int, fullFilePath: String, dao: Dao) {
             continue
         }
         // Skip common generic words
-        if (part.toLowerCase() in listOf("a", "the", "and", "or", "to", "of", "for")) {
+        if (part.lowercase(Locale.getDefault()) in listOf("a", "the", "and", "or", "to", "of", "for")) {
             continue
         }
         dao.associateTagsWithAsset(assetId, part)

@@ -1,22 +1,27 @@
 // farm/backend/src/main/kotlin/com/farm/Application.kt
 package com.farm
 
-import com.farm.database.DatabaseFactory
 import com.farm.database.Dao
-import com.farm.routes.assetRoutes
+import com.farm.database.DatabaseFactory
 import com.farm.plugins.configureSerialization
-import com.farm.plugins.configureStatusPages
 import com.farm.plugins.configureStaticContent
-import io.ktor.server.application.*
-import io.ktor.server.engine.*
-import io.ktor.server.netty.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
-import io.ktor.server.sessions.* // Required for session management (future auth)
-import io.ktor.server.auth.* // Required for authentication (future auth)
-import io.ktor.server.plugins.callloging.* // For request logging
-import io.ktor.server.plugins.compression.* // For response compression
+import com.farm.plugins.configureStatusPages
+import com.farm.routes.assetRoutes
+import io.ktor.server.application.Application
+import io.ktor.server.application.call
+import io.ktor.server.application.install
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.http.content.staticFiles
+import io.ktor.server.netty.Netty
+import io.ktor.server.plugins.callloging.CallLogging
+import io.ktor.server.plugins.compression.Compression
+import io.ktor.server.plugins.compression.deflate
+import io.ktor.server.plugins.compression.gzip
+import io.ktor.server.plugins.compression.minimumSize
+import io.ktor.server.request.path
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.get
+import io.ktor.server.routing.routing
 import org.slf4j.event.Level
 import java.io.File
 
@@ -45,7 +50,7 @@ fun Application.module() {
         }
         deflate {
             priority = 10.0
-            minimumLength(1024) // Compress only responses larger than 1KB
+            minimumSize(1024) // Compress only responses larger than 1KB
         }
     }
 
@@ -96,15 +101,9 @@ fun Application.module() {
         // }
 
         // Route for handling file downloads
-        static("/uploads") {
-            staticRootFolder = File(System.getProperty("user.dir"), "public/uploads")
-            files(".")
-        }
-
-        static("/previews") {
-            staticRootFolder = File(System.getProperty("user.dir"), "public/previews")
-            files(".")
-        }
+        val publicDir = File(System.getProperty("user.dir"), "public")
+        staticFiles("/uploads", File(publicDir, "uploads"))
+        staticFiles("/previews", File(publicDir, "previews"))
     }
 }
 

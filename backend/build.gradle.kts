@@ -23,13 +23,14 @@ dependencies {
     implementation(project(":database")) // Backend depends on database for data access
 
     // Ktor Core
-    implementation(libs.ktor.server.core.jvm) // Reference from TOML
-    implementation(libs.ktor.server.netty) // Reference from TOML (This is the Ktor Netty server engine dependency)
-    implementation(libs.ktor.server.content.negotiation) // Reference from TOML
-    implementation(libs.ktor.serialization.kotlinx.json) // Reference from TOML
+    implementation(libs.ktor.server.core.jvm)
+    implementation(libs.ktor.server.compression)
+    implementation(libs.ktor.server.netty)
+    implementation(libs.ktor.server.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
 
     // Ktor Features (example, add as needed)
-    implementation(libs.ktor.server.status.pages) // Reference from TOML
+    implementation(libs.ktor.server.status.pages)
     implementation(libs.ktor.server.sessions) // If user sessions are needed (TODO for auth)
     implementation(libs.ktor.server.auth) // For user authentication (TODO for auth)
     implementation(libs.ktor.server.call.logging) // For request logging
@@ -44,15 +45,15 @@ dependencies {
     // implementation("com.sksamuel.scrimage:scrimage-core:4.0.0") // Example, would add more dependencies
 
     // Logging (Slf4j simple implementation)
-    implementation(libs.slf4j.simple) // Reference from TOML
+    implementation(libs.slf4j.simple)
 
     // For file system operations
-    implementation(libs.kotlinx.coroutines.core) // Reference from TOML
+    implementation(libs.kotlinx.coroutines.core)
 
     // Testing
-    testImplementation(libs.ktor.server.tests.jvm) // Reference from TOML
-    testImplementation(libs.kotlin.test.junit) // Reference from TOML
-    testImplementation(libs.mockito.kotlin) // Reference from TOML
+    testImplementation(libs.ktor.server.tests.jvm)
+    testImplementation(libs.kotlin.test.junit)
+    testImplementation(libs.mockito.kotlin)
 }
 
 // Task to create necessary directories for uploads and previews on build

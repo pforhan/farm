@@ -17,27 +17,27 @@ dependencies {
     // You should also update your libs.versions.toml file accordingly:
     // [versions]
     // exposed = "1.0.0-beta-2"
-    implementation(libs.exposed.core) // Reference from TOML
-    implementation(libs.exposed.dao) // Reference from TOML
-    implementation(libs.exposed.jdbc) // Reference from TOML
-    implementation(libs.exposed.kotlin.datetime) // Reference from TOML
+    implementation(libs.exposed.core)
+    implementation(libs.exposed.dao)
+    implementation(libs.exposed.jdbc)
+    implementation(libs.exposed.kotlin.datetime)
 
     // Database Driver (MySQL)
-    implementation(libs.mysql.connector.java) // Reference from TOML
+    implementation(libs.mysql.connector.java)
 
     // Connection Pool (HikariCP recommended)
-    implementation(libs.hikari.cp) // Reference from TOML
+    implementation(libs.hikari.cp)
 
     // Kotlinx Coroutines for asynchronous database access
-    implementation(libs.kotlinx.coroutines.core) // Reference from TOML
+    implementation(libs.kotlinx.coroutines.core)
 
     // Project Dependency
     implementation(project(":common")) // For accessing common data models
 
     // Logging
-    implementation(libs.slf4j.simple) // Reference from TOML
+    implementation(libs.slf4j.simple)
 
     // Testing
-    testImplementation(libs.kotlin.test.junit) // Reference from TOML
-    testImplementation(libs.h2.database) // Reference from TOML
+    testImplementation(libs.kotlin.test.junit)
+    testImplementation(libs.h2.database)
 }

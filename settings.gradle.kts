@@ -22,12 +22,10 @@ pluginManagement {
 include(
     "backend",
     "common",
-    "database",
-    "frontend"
+    "database"
 )
 
 // Define project directories for each module
 project(":backend").projectDir = file("backend")
 project(":common").projectDir = file("common")
 project(":database").projectDir = file("database")
-project(":frontend").projectDir = file("frontend")

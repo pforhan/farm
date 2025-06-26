@@ -1,9 +1,9 @@
 // farm/backend/src/main/kotlin/com/farm/plugins/StaticContent.kt
 package com.farm.plugins
 
-import io.ktor.server.application.*
-import io.ktor.server.http.content.*
-import io.ktor.server.routing.*
+import io.ktor.server.application.Application
+import io.ktor.server.http.content.staticResources
+import io.ktor.server.routing.routing
 
 fun Application.configureStaticContent() {
     routing {

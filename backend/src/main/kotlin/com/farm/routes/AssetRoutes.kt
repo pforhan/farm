@@ -1,24 +1,28 @@
 // farm/backend/src/main/kotlin/com/farm/routes/AssetRoutes.kt
 package com.farm.routes
 
-import com.farm.common.Asset
-import com.farm.common.FileDetail
 import com.farm.common.UpdateAssetRequest
 import com.farm.database.Dao
 import com.farm.util.generateFilenameTags
 import com.farm.util.generateThumbnail
 import com.farm.util.processZipFile
-import io.ktor.http.*
-import io.ktor.http.content.*
-import io.ktor.server.application.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.PartData
+import io.ktor.http.content.forEachPart
+import io.ktor.http.content.streamProvider
+import io.ktor.server.application.call
+import io.ktor.server.request.receive
+import io.ktor.server.request.receiveMultipart
+import io.ktor.server.response.respond
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.put
+import io.ktor.server.routing.route
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
-import java.util.UUID
-import javax.imageio.ImageIO
+import java.util.Locale
 
 // Constants for file storage
 val UPLOAD_DIR = Paths.get(System.getProperty("user.dir"), "public", "uploads").toFile()
@@ -96,7 +100,8 @@ fun Route.assetRoutes(dao: Dao) {
 
             val fileBytes = fileItem!!.streamProvider().readBytes()
             val originalFileName = fileItem!!.originalFileName ?: "unknown_file"
-            val fileExtension = originalFileName.substringAfterLast('.', "").toLowerCase()
+            val fileExtension = originalFileName.substringAfterLast('.', "")
+              .lowercase(Locale.getDefault())
             val fileSize = fileBytes.size
 
             if (fileSize > MAX_FILE_SIZE) {
