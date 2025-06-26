@@ -43,8 +43,6 @@ COPY database $APP_HOME/database/
 COPY public $APP_HOME/public/
 # For logs and cache directories
 COPY var $APP_HOME/var/
-# For database.sql, etc.
-COPY docs $APP_HOME/docs/
 
 # Build the Ktor application JAR
 # This will also run the 'createDirs' task to ensure public/var dirs exist
