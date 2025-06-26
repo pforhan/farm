@@ -7,6 +7,7 @@ build/
 
 # Kotlin files
 .kotlin
+kotlin-js-store/
 
 # Configuration file (contains sensitive data)
 .env
