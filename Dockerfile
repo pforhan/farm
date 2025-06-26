@@ -39,9 +39,12 @@ COPY build.gradle.kts $APP_HOME/
 COPY backend $APP_HOME/backend/
 COPY common $APP_HOME/common/
 COPY database $APP_HOME/database/
-COPY public $APP_HOME/public/ # For uploads and previews directories
-COPY var $APP_HOME/var/ # For logs and cache directories
-COPY docs $APP_HOME/docs/ # For database.sql, etc.
+# For uploads and previews directories
+COPY public $APP_HOME/public/
+# For logs and cache directories
+COPY var $APP_HOME/var/
+# For database.sql, etc.
+COPY docs $APP_HOME/docs/
 
 # Build the Ktor application JAR
 # This will also run the 'createDirs' task to ensure public/var dirs exist
