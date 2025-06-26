@@ -8,10 +8,6 @@ plugins {
 group = "com.farm"
 version = "0.0.1"
 
-repositories {
-    mavenCentral()
-}
-
 kotlin {
     jvmToolchain(21) // Use Java 21 for JVM compilation, consistent with Dockerfile
 }

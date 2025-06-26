@@ -5,6 +5,9 @@
 build/
 /local.properties
 
+# Kotlin files
+.kotlin
+
 # Configuration file (contains sensitive data)
 .env
 

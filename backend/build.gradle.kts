@@ -17,11 +17,6 @@ kotlin {
     jvmToolchain(21) // Use Java 21 for JVM compilation, consistent with Dockerfile
 }
 
-repositories {
-    mavenCentral()
-    // Other repositories inherited from allprojects in settings.gradle.kts
-}
-
 dependencies {
     // Project Dependencies
     implementation(project(":common")) // Backend depends on common for shared models

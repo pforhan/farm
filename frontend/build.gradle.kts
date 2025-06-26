@@ -3,16 +3,12 @@
 plugins {
     kotlin("multiplatform") // Applied explicitly
     alias(libs.plugins.jetbrains.compose) // Reference Compose plugin from TOML
+    alias(libs.plugins.compose.compiler) // Reference Compose plugin from TOML
     alias(libs.plugins.kotlin.plugin.serialization) // Reference Kotlinx Serialization plugin from TOML
 }
 
 group = "com.farm"
 version = "0.0.1"
-
-repositories {
-    mavenCentral()
-    maven("https://maven.pkg.jetbrains.space/public/p/compose/dev") // Keep specific compose repo
-}
 
 kotlin {
     jvm() // For desktop (if needed later)

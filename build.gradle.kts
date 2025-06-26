@@ -2,16 +2,18 @@
 
 plugins {
     // These are applied to all subprojects
-    alias(libs.plugins.kotlin.jvm).apply(false) // Apply false here, each module applies it explicitly
-    alias(libs.plugins.jetbrains.compose).apply(false) // Apply false here, frontend applies explicitly
+    alias(libs.plugins.kotlin.jvm) apply false // Apply false here, each module applies it explicitly
+    alias(libs.plugins.jetbrains.compose) apply false // Apply false here, frontend applies explicitly
+    alias(libs.plugins.compose.compiler) apply false // Apply false here, frontend applies explicitly
 }
 
 // Ensure all subprojects have access to necessary repositories
 allprojects {
     repositories {
         mavenCentral()
+        google()
         maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
-        maven("https://maven.pkg.jetbrains.space/public/p/ktor/eap") // Add for dependencies if needed by subprojects
+        maven("https://maven.pkg.jetbrains.space/public/p/ktor/eap")
     }
 }
 

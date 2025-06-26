@@ -8,10 +8,6 @@ plugins {
 group = "com.farm"
 version = "0.0.1"
 
-repositories {
-    mavenCentral()
-}
-
 kotlin {
     jvm() // Define JVM target for backend
     js() { // Define JS target for frontend
