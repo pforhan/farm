@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'; // Removed unused React import
 import { UploadForm } from './components/UploadForm';
 import { BrowseAssets } from './components/BrowseAssets';
 import { AssetDetailsScreen } from './components/AssetDetailsScreen';
@@ -130,7 +130,7 @@ function App() {
             <AssetDetailsScreen
               assetId={currentScreen.assetId}
               onBackClick={() => navigate({ name: 'Browse' })}
-              onEditClick={(id) => navigate({ name: 'EditAsset', id })}
+              onEditClick={(assetId) => navigate({ name: 'EditAsset', assetId })} {/* Corrected 'id' to 'assetId' */}
               onMessage={handleMessage}
             />
           )}
