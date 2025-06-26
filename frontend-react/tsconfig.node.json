@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "lib": ["ES2020"],
+    "module": "CommonJS",
+    "types": ["node"]
+  },
+  "include": ["vite.config.ts"]
+}
