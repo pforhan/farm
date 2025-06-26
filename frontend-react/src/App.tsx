@@ -18,7 +18,7 @@ function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>({ name: 'Browse' });
   const [message, setMessage] = useState<string | null>(null);
   const [isError, setIsError] = useState<boolean>(false);
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchQuery, useStateSearchQuery] = useState<string>(''); // Renamed to avoid conflict
 
   // Global message display effect
   useEffect(() => {
@@ -77,7 +77,7 @@ function App() {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => useStateSearchQuery(e.target.value)} // Updated onChange
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   handleSearchSubmit();

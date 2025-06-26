@@ -1,214 +1,131 @@
-# Farm Digital Asset Manager
+# Farm: Digital Asset Manager
 
-This is a modern web application for managing digital assets, rewritten from a PHP/Nginx/MySQL stack to a Kotlin Ktor backend with Exposed for database interactions, and a Compose Multiplatform frontend for a rich, interactive user interface. The architecture is designed with an eye towards potential future expansion to Android, iOS, and Desktop applications using the same Compose Multiplatform codebase.
+## Files, Assets, Resources, Metadata
 
-## Technologies Used
+Farm is a simple, open-source web application for tracking and managing your digital assets. It features a **Kotlin Ktor backend** for robust API services and a **React/TypeScript frontend** for a dynamic user interface. This combination provides a modern, high-performance solution for organizing assets by store/source, author, license, tags, and projects, and includes capabilities to upload files (including zip archives), preview graphics, and play audio.
 
-**Backend (Ktor JVM):**
+## Features
 
-* **Kotlin:** The primary language for backend development.
-
-* **Ktor:** A flexible and asynchronous web framework for building servers and clients in Kotlin.
-
-* **Exposed:** A Kotlin SQL framework (DSL and lightweight ORM) for database access, developed by JetBrains.
-
-* **MySQL:** The relational database for storing asset metadata, tags, projects, and file information.
-
-* **HikariCP:** A high-performance JDBC connection pool for efficient database connections.
-
-* **Kotlinx.Serialization:** For efficient JSON serialization and deserialization of data between the frontend and backend.
-
-**Frontend (Compose Multiplatform for Web):**
-
-* **Kotlin:** The language for frontend development, compiled to JavaScript.
-
-* **Compose Multiplatform:** A declarative UI framework by JetBrains, enabling shared UI code across Web, Desktop, Android, and iOS. For this web version, it compiles to Kotlin/JS.
-
-* **Ktor Client:** Used by the frontend to make HTTP requests to the Ktor backend APIs.
-
-**Containerization & Development Environment:**
-
-* **Docker:** Used for containerizing the application services (Ktor app, MySQL database).
-
-* **Docker Compose:** For defining and running multi-container Docker applications.
-
-* **Gradle Kotlin DSL:** The build system for managing multi-module Kotlin projects.
+* **Modern Stack:** Built with Kotlin Ktor on the backend and React/TypeScript with Tailwind CSS on the frontend.
+* **Asset Tracking:** Store details like asset name, source store, link, author, and license.
+* **Flexible Organization:** Categorize assets with zero or more tags and associate them with zero or more projects.
+* **File Management:** Upload individual files or zip archives.
+* **Automatic Extraction:** Zip files are automatically extracted, and their contents are individually tracked.
+* **Enhanced Tagging:**
+    * Automatically tags assets based on the uploaded zip filename and source URL.
+    * Extracts additional tags from directory names within uploaded zip archives (e.g., `20x20/static` will add "20x20" and "static" as tags).
+* **Media Previews:** View previews of image files (JPG, PNG, GIF) and play audio files (WAV, MP3, OGG).
+* **Text File Handling:** Supports uploading and managing various text-based files (TXT, MD, HTML, JSON, XML).
+* **Search & Browse:** Search by name, tag, type, and graphics size. Browse all assets with quick access to details.
 
 ## Project Structure
 
-The project is organized into a multi-module Gradle setup:
+```
+farm/
+├── backend/            # Kotlin Ktor backend source code and Gradle build files
+├── common/             # Kotlin multiplatform module for shared data models (used by backend)
+├── database/           # Kotlin module for Exposed ORM and database access logic
+├── frontend-react/     # React/TypeScript frontend source code
+│   ├── public/         # Static assets for React app (index.html)
+│   ├── src/            # React components, TypeScript files, API client
+│   ├── package.json    # Node.js dependencies for React
+│   ├── tailwind.config.js # Tailwind CSS configuration
+│   └── ...             # Other React/TypeScript config files
+├── public/             # Host-mounted directories for uploaded files and previews (Docker volumes)
+│   ├── uploads/        # Actual uploaded files
+│   └── previews/       # Generated thumbnails/previews
+├── var/                # Host-mounted volatile data: logs, cache (Docker volumes)
+│   ├── logs/
+│   └── cache/
+├── docs/               # Project documentation, including database schema
+├── .env                # Environment variables for Docker Compose (DO NOT COMMIT)
+├── docker-compose.yml  # Docker Compose setup
+├── Dockerfile          # Multi-stage Dockerfile for building both frontend and backend
+├── gradlew             # Gradle Wrapper for Kotlin backend
+├── gradle/             # Gradle Wrapper files
+├── build.gradle.kts    # Root Gradle build script
+├── settings.gradle.kts # Root Gradle settings script
+├── .gitignore          # Git ignore file
+├── LICENSE             # Project license
+└── README.md           # This README file
+```
 
-* `farm/` (Root Project)
+## Installation with Docker Compose (Recommended)
 
-    * `settings.gradle.kts`: Defines the included submodules.
+This is the recommended way to run Farm, providing a consistent and isolated environment.
 
-    * `build.gradle.kts`: Root Gradle configuration.
+**Prerequisites:**
 
-    * `docker-compose.yml`: Defines Docker services (`app` and `db`).
+* **Docker Desktop** (for Windows/macOS) or **Docker Engine & Docker Compose** (for Linux) installed and running.
+* **Git** (optional, but recommended for cloning this project).
 
-    * `Dockerfile`: Instructions for building the Ktor application Docker image.
+**Steps:**
 
-    * `.env`: Environment variables for Docker Compose (e.g., database credentials, app port).
-
-    * `public/`: Contains `uploads` and `previews` directories, mounted as Docker volumes.
-
-    * `var/`: Contains `logs` and `cache` directories, mounted as Docker volumes.
-
-    * `docs/database.sql`: Initial SQL schema for MySQL.
-
-    * `backend/`:
-
-        * `src/main/kotlin/com/farm/Application.kt`: Ktor server entry point and main module configuration.
-
-        * `src/main/kotlin/com/farm/routes/AssetRoutes.kt`: Defines REST API endpoints for assets (upload, details, search, update).
-
-        * `src/main/kotlin/com/farm/plugins/`: Ktor plugin configurations (serialization, error handling, static content).
-
-        * `src/main/kotlin/com/farm/util/FileProcessing.kt`: Utility for thumbnail generation and ZIP file extraction.
-
-        * `src/main/resources/static/`: Where the built Compose Multiplatform web assets (JS, HTML, CSS) are copied for Ktor to serve.
-
-    * `common/`:
-
-        * `src/commonMain/kotlin/com/farm/common/Models.kt`: Shared data classes (e.g., `Asset`, `FileDetail`, `UpdateAssetRequest`) used by both frontend and backend.
-
-    * `database/`:
-
-        * `src/main/kotlin/com/farm/database/DatabaseFactory.kt`: Database connection setup and Exposed transaction helpers.
-
-        * `src/main/kotlin/com/farm/database/Tables.kt`: Exposed table definitions (Assets, Files, Tags, Projects, etc.).
-
-        * `src/main/kotlin/com/farm/database/Dao.kt`: Data Access Object for interacting with the database using Exposed.
-
-    * `frontend/`:
-
-        * `src/jsMain/kotlin/Main.kt`: Compose Multiplatform web entry point.
-
-        * `src/commonMain/kotlin/com/farm/frontend/App.kt`: Main UI application logic.
-
-        * `src/commonMain/kotlin/com/farm/frontend/api/FarmApiClient.kt`: Ktor client for making API calls to the backend.
-
-        * `src/commonMain/kotlin/com/farm/frontend/components/`: Individual reusable UI components (e.g., `UploadForm`, `BrowseAssets`).
-
-        * `src/jsMain/resources/index.html`: The main HTML file for the web frontend.
-
-        * `src/jsMain/resources/styles.css`: Basic CSS for the web frontend.
-
-## Installation and Setup
-
-### Prerequisites
-
-* **Docker Desktop:** Ensure Docker is installed and running on your system.
-
-* **Git:** For cloning the repository.
-
-* (Optional, but recommended for development) **IntelliJ IDEA Ultimate:** Provides excellent support for Kotlin, Gradle, Ktor, Compose Multiplatform, and database tools.
-
-### Steps to Run
-
-1.  **Clone the Repository:**
-
+1.  **Clone the repository (or create the directory manually):**
     ```bash
-    git clone <repository_url>
+    git clone [your-repo-url] farm
     cd farm
     ```
+    If not using Git, manually create a directory named `farm` and populate it with the files from the project structure above.
 
-2.  **Create `.env` File:**
-    Create a file named `.env` in the root `farm/` directory with the following content. **Replace placeholder values** with your desired credentials.
+2.  **Create the `.env` file:**
+    Create a file named `.env` in the `farm/` directory (at the same level as `docker-compose.yml`) and add your database credentials. **Do not commit this file to version control.**
 
     ```dotenv
-    # .env file for Farm Digital Asset Manager
-    APP_PORT=6118
-
-    # MySQL Database Configuration
-    MYSQL_ROOT_PASSWORD=your_secure_root_password
-    MYSQL_DATABASE=farm_db
-    MYSQL_USER=farm_user
-    MYSQL_PASSWORD=farm_password
-    JDBC_DATABASE_URL=jdbc:mysql://db:3306/farm_db # 'db' refers to the service name in docker-compose
+    # .env - Environment variables for Docker Compose
+    MYSQL_ROOT_PASSWORD=your_root_password_here
+    MYSQL_DATABASE=your_farm_db_name
+    MYSQL_USER=your_farm_db_user
+    MYSQL_PASSWORD=your_farm_db_password
+    APP_PORT=6118 # Port the Ktor app will be accessible on your host
     ```
+    **Remember to replace `your_root_password_here`, `your_farm_db_name`, `your_farm_db_user`, and `your_farm_db_password` with strong, unique values.**
 
-3.  **Ensure Writable Directories:**
-    Create the necessary directories that Docker will mount as volumes. These should be at the root of your `farm` project:
-
+3.  **Run the initial setup for host directories:**
+    While Docker volumes handle persistence, it's good practice to create these on the host. From your `farm` directory, run:
     ```bash
     mkdir -p public/uploads public/previews var/logs var/cache
+    chmod -R 777 public/uploads public/previews var/logs var/cache
     ```
 
-    On Linux/macOS, you might also need to ensure these directories are writable by the user running the Docker container (which is `nobody` in our Dockerfile, with `nogroup` group, and permissions are set to `777` for safety during testing).
-
-4.  **Build and Run Docker Containers:**
-    Navigate to the `farm/` root directory in your terminal and run:
-
+4.  **Build and start the Docker services:**
+    From your `farm` project root directory, run:
     ```bash
-    docker compose up --build -d
+    docker-compose up --build -d
     ```
-
-    * `--build`: Rebuilds the Docker images. This is important when you make changes to your Kotlin code or dependencies.
-
+    * `--build`: This ensures that your Docker images (Node.js for frontend, OpenJDK for backend) are built from their respective stages in the `Dockerfile`. You need this the first time or if you change the `Dockerfile`, `package.json`, or Gradle files.
     * `-d`: Runs the containers in detached mode (in the background).
 
     This command will:
+    * Build the React frontend (Stage 1 in Dockerfile).
+    * Build the Kotlin Ktor backend JAR (Stage 2 in Dockerfile).
+    * Create a final Docker image containing both the Ktor application and the static React build, where Ktor is configured to serve the React files.
+    * Start the `app` (Ktor application) container.
+    * Start the `db` (MySQL) database container.
+    * **Automatically initialize the MySQL database** by importing `docs/database.sql` on the *first run* of the `db` service.
+    * Set up networking between the containers.
 
-    * Build the `app` (Ktor) Docker image. During the build, it executes the Gradle task `backend:installDist`, which also triggers the `frontend:jsBrowserProductionWebpack` task to build the frontend and copy its assets to the backend's resources.
+5.  **Access the application:**
+    Open your web browser and navigate to `http://localhost:6118` (or the `APP_PORT` you defined in your `.env` file).
 
-    * Start the MySQL database container (`db`).
+**To stop and remove containers (and networks/volumes by default):**
 
-    * Start the Ktor application container (`app`).
+```bash
+docker-compose down
+```
 
-5.  **Access the Application:**
-    Once the containers are up and running (it might take a few moments for the database to initialize and Ktor to start), open your web browser and navigate to:
+*(If you want to remove the database data volume as well, which means losing all your uploaded asset data, use `docker-compose down -v`)*
 
-    ```
-    http://localhost:6118
-    ```
+## Usage
 
-    (Or the `APP_PORT` you specified in your `.env` file if different from `6118`).
+* **Upload:** Use the "Upload New Asset" form to add new digital game assets. You can provide the asset name, source URL, store, author, license, and initial tags/projects directly during upload. Zip files will be automatically extracted, and content will be processed and tagged.
+* **Browse:** View a list of all your assets. Click "Details" to see more information about a specific asset, including its associated files, tags, and projects.
+* **Search:** Use the search form to find assets by asset name, associated tags, or file type.
 
-## Development Notes
+## Contributing
 
-### Rebuilding After Code Changes
+Contributions are welcome! Please feel free to open a bug report, suggest a feature, or submit a pull request.
 
-* **Backend Changes:** If you modify Kotlin code in `backend/`, `common/`, or `database/`, you'll need to rebuild the Docker image:
+## License
 
-    ```bash
-    docker compose up --build -d
-    ```
-
-* **Frontend Changes:** If you modify Kotlin Compose Multiplatform code in `frontend/`, the backend image build process should automatically pick up these changes. However, if you're iterating quickly on the frontend, you might explicitly run the frontend build task:
-
-    ```bash
-    ./gradlew :frontend:jsBrowserDevelopmentWebpack
-    ```
-
-    And then restart the backend container if its static content cache needs clearing, or perform a full `docker compose up --build -d`.
-
-### Database Access
-
-You can connect to the MySQL database from your host machine using a tool like DataGrip, MySQL Workbench, or DBeaver.
-
-* **Host:** `localhost`
-
-* **Port:** `3306` (as mapped in `docker-compose.yml`)
-
-* **User:** `farm_user` (or whatever you set in `.env`)
-
-* **Password:** `farm_password` (or whatever you set in `.env`)
-
-* **Database:** `farm_db` (or whatever you set in `.env`)
-
-### Future Enhancements (TODOs)
-
-* **Two-Stage File Upload:** Implement a more robust upload process where files are first uploaded and processed, then metadata is reviewed and finalized by the user. (See `backend/src/main/kotlin/com/farm/routes/AssetRoutes.kt` for `TODO` comments).
-
-* **User Management:** Integrate a complete user authentication and authorization system (e.g., user registration, login, roles, permissions). (See `backend/src/main/kotlin/com/farm/Application.kt` and `database/src/main/kotlin/com/farm/database/Tables.kt` for `TODO` comments).
-
-* **Multiplatform Builds:** Expand the Compose Multiplatform frontend to target Android, iOS, and Desktop native applications.
-
-* **Enhanced Search:** Implement more advanced search capabilities (e.g., filtering by tags, file types, date ranges).
-
-* **Tag Management UI:** Create a UI for managing tags (create, edit, delete, merge).
-
-* **Asset Deletion:** Add functionality to delete assets and their associated files/previews.
-
-* **API Documentation:** Generate API documentation (e.g., using OpenAPI/Swagger).
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

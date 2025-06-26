@@ -72,9 +72,9 @@ RUN mkdir -p $APP_HOME/public/uploads && \
     chown -R nobody:nogroup $APP_HOME/var/logs && \
     chown -R nobody:nogroup $APP_HOME/var/cache && \
     chmod -R 777 $APP_HOME/public/uploads && \
-    chmod -R 777 $APP_HOME/public/previews && \
-    chmod -R 777 $APP_HOME/var/logs && \
-    chmod -R 777 $APP_HOME/var/cache
+    chmod -R 777 /app/public/previews \
+    && chmod -R 777 $APP_HOME/var/logs \
+    && chmod -R 777 $APP_HOME/var/cache
 
 # Set the entry point to run the Ktor application
 WORKDIR /app/backend-dist/bin
