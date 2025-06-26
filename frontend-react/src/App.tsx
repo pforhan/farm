@@ -114,15 +114,15 @@ function App() {
             <UploadForm
               onUploadSuccess={(assetId, msg) => {
                 handleMessage(msg);
-                navigate({ name: 'AssetDetails', assetId });
+                navigate({ name: 'AssetDetails', assetId: assetId });
               }}
               onUploadError={(errorMsg) => handleMessage(`Upload Error: ${errorMsg}`, true)}
             />
           )}
           {currentScreen.name === 'Browse' && (
             <BrowseAssets
-              onAssetClick={(assetId) => navigate({ name: 'AssetDetails', assetId })}
-              onEditClick={(assetId) => navigate({ name: 'EditAsset', assetId })}
+              onAssetClick={(assetId) => navigate({ name: 'AssetDetails', assetId: assetId })}
+              onEditClick={(assetId) => navigate({ name: 'EditAsset', assetId: assetId })}
               onMessage={handleMessage}
             />
           )}
@@ -148,8 +148,8 @@ function App() {
           {currentScreen.name === 'SearchResults' && (
             <SearchResultsScreen
               query={currentScreen.query}
-              onAssetClick={(assetId) => navigate({ name: 'AssetDetails', assetId })}
-              onEditClick={(assetId) => navigate({ name: 'EditAsset', assetId })}
+              onAssetClick={(assetId) => navigate({ name: 'AssetDetails', assetId: assetId })}
+              onEditClick={(assetId) => navigate({ name: 'EditAsset', assetId: assetId })}
               onMessage={handleMessage}
             />
           )}
