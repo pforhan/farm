@@ -94,7 +94,7 @@ This is the recommended way to run Farm, providing a consistent and isolated env
 4.  **Build and start the Docker services:**
     From your `farm` project root directory, run:
     ```bash
-    docker-compose up --build -d
+    docker compose up --build -d
     ```
     * `--build`: This ensures that your Docker images (Node.js for frontend, OpenJDK for backend) are built from their respective stages in the `Dockerfile`. You need this the first time or if you change the `Dockerfile`, `package.json`, or Gradle files.
     * `-d`: Runs the containers in detached mode (in the background).
@@ -114,10 +114,10 @@ This is the recommended way to run Farm, providing a consistent and isolated env
 **To stop and remove containers (and networks/volumes by default):**
 
 ```bash
-docker-compose down
+docker compose down
 ```
 
-*(If you want to remove the database data volume as well, which means losing all your uploaded asset data, use `docker-compose down -v`)*
+*(If you want to remove the database data volume as well, which means losing all your uploaded asset data, use `docker compose down -v`)*
 
 ## Usage
 
@@ -127,7 +127,7 @@ docker-compose down
 
 ## Contributing
 
-Contributions are welcome! Please feel free to open a bug report, suggest a feature, or submit a pull request.
+Contributions are welcome! Please feel to open a bug report, suggest a feature, or submit a pull request.
 
 ## License
 

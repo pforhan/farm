@@ -14,7 +14,7 @@ export default defineConfig({
 
   // Specify the directory where static assets (like index.html) are located.
   // This tells Vite that `public` is the public-facing directory within the `root`.
-  publicDir: path.resolve(__dirname, './public'),
+  publicDir: 'public',
 
   // Configure the build process.
   build: {

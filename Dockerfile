@@ -9,17 +9,26 @@ WORKDIR /app/frontend-react
 
 # Copy package.json and package-lock.json (or yarn.lock) for dependency caching
 COPY frontend-react/package.json ./
-# If you use yarn, copy yarn.lock as well:
-# COPY frontend-react/yarn.lock ./
 
-# Copy vite.config.ts (required for Vite to correctly resolve paths)
+# Clean npm cache and node_modules before installing to ensure a fresh environment
+RUN rm -rf node_modules && npm cache clean --force
+
+# Copy vite.config.ts
 COPY frontend-react/vite.config.ts ./
 
-# Install frontend dependencies
-RUN npm install
+# Install frontend dependencies, using --legacy-peer-deps for robustness with peer dependency issues
+RUN npm install --legacy-peer-deps
 
-# Copy the rest of the frontend source code
+# Copy the rest of the frontend source code (src/ and public/)
 COPY frontend-react/ ./
+
+# --- DEBUGGING: List contents to verify file structure before build ---
+RUN echo "--- Contents of /app/frontend-react/ ---"
+RUN ls -R /app/frontend-react/
+RUN echo "--- Checking for public/index.html ---"
+RUN test -f public/index.html && echo "public/index.html exists." || echo "public/index.html NOT found!"
+RUN echo "--- End of debug output ---"
+
 
 # Build the React application
 # This command typically creates a 'dist' or 'build' directory with static files
@@ -73,8 +82,7 @@ RUN mkdir -p $APP_HOME/public/uploads && \
     chown -R nobody:nogroup $APP_HOME/public/uploads && \
     chown -R nobody:nogroup $APP_HOME/public/previews && \
     chown -R nobody:nogroup $APP_HOME/var/logs && \
-    chown -R nobody:nogroup $APP_HOME/var/cache && \
-    chmod -R 777 $APP_HOME/public/uploads && \
+    chown -R 777 $APP_HOME/public/uploads && \
     chmod -R 777 /app/public/previews \
     && chmod -R 777 $APP_HOME/var/logs \
     && chmod -R 777 $APP_HOME/var/cache
