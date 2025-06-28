@@ -13,7 +13,7 @@ pluginManagement {
     // Use version catalogs for plugin versions where appropriate (e.g., in build.gradle.kts files)
     // For pluginManagement in settings.gradle.kts, direct version strings or resolution from repositories.
     plugins {
-        id("org.jetbrains.kotlin.jvm") version "2.1.0" // Direct version, matching libs.versions.toml
+        id("org.jetbrains.kotlin.jvm") version "2.2.0" // Direct version, matching libs.versions.toml
         id("org.jetbrains.compose") version "1.6.10" // Direct version, matching libs.versions.toml
     }
 }
