@@ -46,6 +46,7 @@ farm/
 ├── Dockerfile          # Multi-stage Dockerfile for building both frontend and backend
 ├── gradlew             # Gradle Wrapper for Kotlin backend
 ├── gradle/             # Gradle Wrapper files
+│   └── libs.versions.toml # Centralized dependency versions (TOML format)
 ├── build.gradle.kts    # Root Gradle build script
 ├── settings.gradle.kts # Root Gradle settings script
 ├── .gitignore          # Git ignore file
@@ -82,7 +83,7 @@ This is the recommended way to run Farm, providing a consistent and isolated env
     MYSQL_PASSWORD=your_farm_db_password
     APP_PORT=6118 # Port the Ktor app will be accessible on your host
     ```
-    **Remember to replace `your_root_password_here`, `your_farm_db_name`, `your_farm_db_user`, and `your_farm_db_password` with strong, unique values.**
+    **Remember to replace `your_root_password_here`, `your_farm_db_name`, `your_farm_db_user`, and `your_farm_db_password` with strong, unique values. Pay special attention to matching `MYSQL_USER` and `MYSQL_PASSWORD` if you're using names like `farm_user_dev`.**
 
 3.  **Run the initial setup for host directories:**
     While Docker volumes handle persistence, it's good practice to create these on the host. From your `farm` directory, run:

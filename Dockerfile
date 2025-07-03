@@ -23,11 +23,11 @@ RUN npm install --legacy-peer-deps
 COPY frontend-react/ ./
 
 # --- DEBUGGING: List contents to verify file structure before build ---
-RUN echo "--- Contents of /app/frontend-react/ ---"
+RUN echo "--- Contents of /app/frontend-react/ (before frontend build) ---"
 RUN ls -R /app/frontend-react/
-RUN echo "--- Checking for public/index.html ---"
+RUN echo "--- Checking for public/index.html (before frontend build) ---"
 RUN test -f public/index.html && echo "public/index.html exists." || echo "public/index.html NOT found!"
-RUN echo "--- End of debug output ---"
+RUN echo "--- End of debug output (before frontend build) ---"
 
 
 # Build the React application
@@ -72,6 +72,14 @@ COPY --from=backend-builder $APP_HOME/backend/build/install/backend /app/backend
 # These files will be served by Ktor's static content feature from src/main/resources/static
 COPY --from=frontend-builder /app/frontend-react/build /app/backend-dist/lib/src/main/resources/static/
 
+# --- DEBUGGING: List contents of the Ktor static resources directory ---
+RUN echo "--- Contents of /app/backend-dist/lib/src/main/resources/static/ (after frontend copy) ---"
+RUN ls -R /app/backend-dist/lib/src/main/resources/static/
+RUN echo "--- Checking for index.html in Ktor's static resources ---"
+RUN test -f /app/backend-dist/lib/src/main/resources/static/index.html && echo "index.html found in Ktor static resources." || echo "index.html NOT found in Ktor static resources!"
+RUN echo "--- End of debug output (after frontend copy) ---"
+
+
 # Adjust permissions for directories that need to be writable by the application
 # These are mounted from host volumes, so this is mainly for safety within the container.
 # They are relative to the Ktor application's working directory within the container, which is /app
@@ -82,7 +90,8 @@ RUN mkdir -p $APP_HOME/public/uploads && \
     chown -R nobody:nogroup $APP_HOME/public/uploads && \
     chown -R nobody:nogroup $APP_HOME/public/previews && \
     chown -R nobody:nogroup $APP_HOME/var/logs && \
-    chown -R 777 $APP_HOME/public/uploads && \
+    chown -R nobody:nogroup $APP_HOME/var/cache && \
+    chmod -R 777 $APP_HOME/public/uploads && \
     chmod -R 777 /app/public/previews \
     && chmod -R 777 $APP_HOME/var/logs \
     && chmod -R 777 $APP_HOME/var/cache
