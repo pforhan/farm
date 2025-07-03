@@ -3,7 +3,7 @@
 # and then package them into a single image where the Ktor app serves the static React files.
 
 # --- Stage 1: Build the React Frontend ---
-FROM node:18-alpine as frontend-builder
+FROM node:20-alpine as frontend-builder # Changed from node:18-alpine to node:20-alpine for better compatibility with Vite 5.x
 
 WORKDIR /app/frontend-react
 
@@ -11,7 +11,7 @@ WORKDIR /app/frontend-react
 COPY frontend-react/package.json ./
 
 # Clean npm cache and node_modules before installing to ensure a fresh environment
-RUN rm -rf node_modules && npm cache clean --force
+# RUN rm -rf node_modules && npm cache clean --force # This line is usually not needed and can cause issues
 
 # Copy vite.config.ts
 COPY frontend-react/vite.config.ts ./
@@ -75,6 +75,8 @@ COPY --from=frontend-builder /app/frontend-react/build /app/backend-dist/lib/src
 # --- DEBUGGING: List contents of the Ktor static resources directory ---
 RUN echo "--- Contents of /app/backend-dist/lib/src/main/resources/static/ (after frontend copy) ---"
 RUN ls -R /app/backend-dist/lib/src/main/resources/static/
+RUN echo "--- Detailed listing of /app/backend-dist/lib/src/main/resources/static/ ---"
+RUN ls -l /app/backend-dist/lib/src/main/resources/static/
 RUN echo "--- Checking for index.html in Ktor's static resources ---"
 RUN test -f /app/backend-dist/lib/src/main/resources/static/index.html && echo "index.html found in Ktor static resources." || echo "index.html NOT found in Ktor static resources!"
 RUN echo "--- End of debug output (after frontend copy) ---"
