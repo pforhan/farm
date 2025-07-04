@@ -3,7 +3,7 @@
 # and then package them into a single image where the Ktor app serves the static React files.
 
 # --- Stage 1: Build the React Frontend ---
-FROM node:20-alpine as frontend-builder # Changed from node:18-alpine to node:20-alpine for better compatibility with Vite 5.x
+FROM node:20-alpine as frontend-builder
 
 WORKDIR /app/frontend-react
 
