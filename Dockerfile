@@ -35,12 +35,12 @@ COPY frontend-react/ ./
 RUN npm run build
 
 # --- DEBUGGING: Verify frontend build output ---
-RUN echo "--- Contents of /app/frontend-react/ (after frontend build) ---"
-RUN ls -R /app/frontend-react/
-RUN echo "--- Contents of /app/frontend-react/build/ ---"
-RUN ls -l /app/frontend-react/build/ || echo "frontend-react/build directory not found or empty."
-RUN test -d /app/frontend-react/build && echo "frontend-react/build directory exists." || echo "frontend-react/build directory DOES NOT EXIST."
-RUN echo "--- End of debug output (after frontend build) ---"
+# RUN echo "--- Contents of /app/frontend-react/ (after frontend build) ---"
+# RUN ls -R /app/frontend-react/
+# RUN echo "--- Contents of /app/frontend-react/build/ ---"
+# RUN ls -l /app/frontend-react/build/ || echo "frontend-react/build directory not found or empty."
+# RUN test -d /app/frontend-react/build && echo "frontend-react/build directory exists." || echo "frontend-react/build directory DOES NOT EXIST."
+# RUN echo "--- End of debug output (after frontend build) ---"
 
 # --- Stage 2: Build the Kotlin Ktor Backend ---
 FROM openjdk:21-jdk-slim as backend-builder

@@ -4,50 +4,73 @@ package com.farm.database
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.SchemaUtils.create
-import org.jetbrains.exposed.v1.jdbc.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 
 object DatabaseFactory {
 
     fun init() {
-        // Use environment variables for database connection
-        val farmJdbcUrl = System.getenv("JDBC_DATABASE_URL") ?: "jdbc:mysql://db:3306/farm_db"
-        val dbUser = System.getenv("MYSQL_USER") ?: "farm_user"
-        val dbPassword = System.getenv("MYSQL_PASSWORD") ?: "farm_password"
+        // Retrieve database credentials from environment variables, with defaults
+        val jdbcUrl = System.getenv("JDBC_DATABASE_URL") ?: "jdbc:mysql://db:3306/farm_db"
+        val user = System.getenv("MYSQL_USER") ?: "farm_user_dev"
+        val password = System.getenv("MYSQL_PASSWORD") ?: "farm_password_dev"
 
-        val config = HikariConfig().apply {
-            driverClassName = "com.mysql.cj.jdbc.Driver"
-            jdbcUrl = farmJdbcUrl
-            username = dbUser
-            password = dbPassword
-            maximumPoolSize = 10
-            isAutoCommit = false
-            transactionIsolation = "TRANSACTION_REPEATABLE_READ"
-            validate() // Validate the configuration
-        }
-        val dataSource = HikariDataSource(config)
-        Database.connect(dataSource)
+        // For debugging, print environment variables (avoid in production for passwords)
+        println("Initializing database connection:")
+        println("JDBC URL: $jdbcUrl")
+        println("User: $user")
+        // println("Password: $password") # Keep password out of logs for security
 
-        // Create tables if they don't exist
-        transaction {
-            create(Stores)
-            create(Licenses)
-            create(Authors)
-            create(Tags)
-            create(Projects)
-            create(Assets)
-            create(Files)
-            create(AssetTags)
-            create(AssetProjects)
+        // Manual check for JDBC driver (useful for debugging NoClassDefFoundError)
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver")
+            println("MySQL JDBC Driver found.")
+        } catch (e: ClassNotFoundException) {
+            System.err.println("ERROR: MySQL JDBC Driver NOT found. Please ensure 'mysql-connector-java' is in your dependencies. Message: ${e.message}")
+            throw e
         }
-        println("Database initialized and tables ensured.")
+
+        // Attempt to connect to the database using HikariCP
+        try {
+            Database.connect(hikari(jdbcUrl, user, password))
+            println("Database connection established successfully.")
+        } catch (e: Exception) {
+            System.err.println("ERROR: Failed to connect to the database. Please check connection details and ensure MySQL service is running. Message: ${e.message}")
+            throw e
+        }
+
+
+        // Create tables if they don't exist. This transaction ensures schema creation
+        // happens only once on startup.
+        try {
+            transaction {
+                SchemaUtils.create(Stores, Authors, Licenses, Tags, Projects, Assets, Files, AssetTags, AssetProjects)
+                println("Database schema created/verified successfully.")
+            }
+        } catch (e: Exception) {
+            System.err.println("ERROR: Failed to create or verify database schema. Message: ${e.message}")
+            throw e
+        }
     }
 
-    // A utility function to run database transactions on a separate thread pool
-    // This is crucial for Ktor's non-blocking nature.
-    // TODO This is deprecated and should be replaced with `suspendTransaction()` from exposed-r2dbc instead to use a suspending transaction.
+    private fun hikari(jdbcUrl: String, user: String, password: String): HikariDataSource {
+        val config = HikariConfig()
+        config.jdbcUrl = jdbcUrl
+        config.username = user
+        config.password = password
+        config.driverClassName = "com.mysql.cj.jdbc.Driver"
+        config.maximumPoolSize = 3
+        config.isAutoCommit = false
+        config.transactionIsolation = "TRANSACTION_REPEATABLE_READ"
+        config.validate()
+        return HikariDataSource(config)
+    }
+
+    // Helper function for performing database queries within a coroutine context
     suspend fun <T> dbQuery(block: suspend () -> T): T =
-        newSuspendedTransaction(Dispatchers.IO) { block() }
+    // Dispatches the database operation to an IO-bound thread pool
+        // This prevents blocking the main event loop in Ktor.
+        withContext(Dispatchers.IO) { block() }
 }

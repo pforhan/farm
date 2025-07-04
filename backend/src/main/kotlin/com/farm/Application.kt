@@ -8,7 +8,6 @@ import com.farm.plugins.configureStaticContent
 import com.farm.plugins.configureStatusPages
 import com.farm.routes.assetRoutes
 import io.ktor.server.application.Application
-import io.ktor.server.application.call
 import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.http.content.staticFiles
@@ -28,6 +27,9 @@ import java.io.File
 fun main() {
     embeddedServer(Netty, port = 8080, host = "0.0.0.0", module = Application::module)
         .start(wait = true)
+    Thread.setDefaultUncaughtExceptionHandler {
+        thread, throwable -> println("Uncaught exception in thread $thread: ${throwable.message}")
+    }
 }
 
 fun Application.module() {
