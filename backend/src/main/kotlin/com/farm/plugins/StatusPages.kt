@@ -12,7 +12,9 @@ fun Application.configureStatusPages() {
     install(StatusPages) {
         exception<Throwable> { call, cause ->
             call.application.log.error("Unhandled exception: ${cause.message}", cause)
-            call.respondText(text = "500: ${cause.message ?: "Internal Server Error"}", status = HttpStatusCode.InternalServerError)
+            val stacktrace = cause.stackTraceToString()
+            call.respondText(text = "500: ${cause.message ?: "Internal Server Error"}" +
+              "\n\n$stacktrace", status = HttpStatusCode.InternalServerError)
         }
         status(HttpStatusCode.NotFound) { call, status ->
             call.respondText(text = "${status.value}: ${status.description}", status = status)
