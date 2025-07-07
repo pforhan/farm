@@ -3,7 +3,7 @@
 # and then package them into a single image where the Ktor app serves the static React files.
 
 # --- Stage 1: Build the React Frontend ---
-FROM node:20-alpine as frontend-builder # Changed from node:18-alpine to node:20-alpine for better compatibility with Vite 5.x
+FROM node:20-alpine as frontend-builder
 
 WORKDIR /app/frontend-react
 
@@ -88,8 +88,8 @@ COPY --from=frontend-builder /app/frontend-react/build $APP_HOME/backend/src/mai
 COPY backend $APP_HOME/backend/
 COPY common $APP_HOME/common/
 COPY database $APP_HOME/database/
-COPY public $APP_HOME/public/ # Copy empty public/uploads and public/previews for structure
-COPY var $APP_HOME/var/       # Copy empty var/logs and var/cache for structure
+COPY public $APP_HOME/public/
+COPY var $APP_HOME/var/
 
 # Build the Ktor application JAR
 # This will now use the dependencies downloaded and cached in the previous layer.
