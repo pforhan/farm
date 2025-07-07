@@ -104,19 +104,6 @@ WORKDIR $APP_HOME
 # Copy the backend distribution from the backend-builder stage
 COPY --from=backend-builder $APP_HOME/backend/build/install/backend /app/backend-dist
 
-# Copy the built React frontend static files from the frontend-builder stage
-# These files will be served by Ktor's static content feature from src/main/resources/static
-
-# --- DEBUGGING: List contents of the Ktor static resources directory ---
-RUN echo "--- Contents of /app/backend-dist/lib/src/main/resources/static/ (after frontend copy) ---"
-RUN ls -R /app/backend-dist/lib/src/main/resources/static/
-RUN echo "--- Detailed listing of /app/backend-dist/lib/src/main/resources/static/ ---"
-RUN ls -l /app/backend-dist/lib/src/main/resources/static/
-RUN echo "--- Checking for index.html in Ktor's static resources ---"
-RUN test -f /app/backend-dist/lib/src/main/resources/static/index.html && echo "index.html found in Ktor static resources." || echo "index.html NOT found in Ktor static resources!"
-RUN echo "--- End of debug output (after frontend copy) ---"
-
-
 # Adjust permissions for directories that need to be writable by the application
 # These are mounted from host volumes, so this is mainly for safety within the container.
 # They are relative to the Ktor application's working directory within the container, which is /app
