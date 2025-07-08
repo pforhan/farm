@@ -84,7 +84,7 @@ suspend fun processZipFile(zipFile: File, assetId: Int, dao: Dao, originalArchiv
             assetUploadDir.mkdirs()
 
             // Add the "archive:archive-name" tag to the main asset
-            dao.associateTagsWithAsset(assetId, "archive:${originalArchiveFileName.substringBeforeLast('.')}") // Tag without extension
+            dao.addTagToAsset(assetId, "archive:${originalArchiveFileName.substringBeforeLast('.')}") // Tag without extension
 
             while (entries.hasMoreElements()) {
                 val entry = entries.nextElement()
@@ -113,17 +113,17 @@ suspend fun processZipFile(zipFile: File, assetId: Int, dao: Dao, originalArchiv
                     }
                 }
 
-                dao.addFileToAsset(
+                dao.addFile(
                     assetId = assetId,
                     fileName = entryName.substringAfterLast('/'), // Only store filename, not full path in DB
                     filePath = targetFile.absolutePath,
-                    fileSize = entry.size.toInt(),
+                    fileSize = entry.size,
                     fileType = fileType,
                     previewPath = previewPath
                 )
 
                 // Add the "archive-path:path-inside-archive" tag for each extracted file
-                dao.associateTagsWithAsset(assetId, "archive-path:$entryName")
+                dao.addTagToAsset(assetId, "archive-path:$entryName")
 
                 // Generate other tags from filename patterns for the extracted file
                 // These tags are still associated with the main asset
@@ -151,7 +151,7 @@ suspend fun generateFilenameTags(assetId: Int, fullFilePath: String, dao: Dao) {
 
     // 1. Always add the full filename (without extension) as a tag
     if (nameWithoutExt.isNotBlank()) {
-        dao.associateTagsWithAsset(assetId, nameWithoutExt)
+        dao.addTagToAsset(assetId, nameWithoutExt)
     }
 
     // 2. Split by common delimiters and add as tags (filtered)
@@ -165,7 +165,7 @@ suspend fun generateFilenameTags(assetId: Int, fullFilePath: String, dao: Dao) {
         if (part.lowercase(Locale.getDefault()) in listOf("a", "the", "and", "or", "to", "of", "for")) {
             continue
         }
-        dao.associateTagsWithAsset(assetId, part)
+        dao.addTagToAsset(assetId, part)
     }
 
     // 3. Detect and add dimension tags (e.g., 20x20, 1280x720)
@@ -173,6 +173,6 @@ suspend fun generateFilenameTags(assetId: Int, fullFilePath: String, dao: Dao) {
     // Search in filename and also in path (for zip internal paths)
     val textToSearch = "$nameWithoutExt $fullFilePath"
     dimensionRegex.findAll(textToSearch).forEach { matchResult ->
-        dao.associateTagsWithAsset(assetId, matchResult.groupValues[1])
+        dao.addTagToAsset(assetId, matchResult.groupValues[1])
     }
 }

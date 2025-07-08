@@ -24,7 +24,7 @@ data class FileDetail(
     val fileName: String,
     val filePath: String, // Full server-side path, primarily for backend use
     val publicPath: String, // Public URL path for download
-    val fileSize: Int,
+    val fileSize: Long,
     val fileType: String,
     val previewPath: String? // Public URL path for file-specific thumbnail
 )

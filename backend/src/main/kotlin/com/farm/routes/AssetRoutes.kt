@@ -10,7 +10,6 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
 import io.ktor.http.content.streamProvider
-import io.ktor.server.application.call
 import io.ktor.server.request.receive
 import io.ktor.server.request.receiveMultipart
 import io.ktor.server.response.respond
@@ -38,7 +37,7 @@ fun Route.assetRoutes(dao: Dao) {
     route("/api/assets") {
         // GET all assets
         get {
-            val assets = dao.getAllAssets()
+            val assets = dao.allAssets()
             call.respond(assets)
         }
 
@@ -49,7 +48,7 @@ fun Route.assetRoutes(dao: Dao) {
                 call.respond(HttpStatusCode.BadRequest, "Invalid asset ID")
                 return@get
             }
-            val assetDetails = dao.getAssetDetails(id)
+            val assetDetails = dao.asset(id)
             if (assetDetails == null) {
                 call.respond(HttpStatusCode.NotFound, "Asset not found")
             } else {
@@ -98,6 +97,7 @@ fun Route.assetRoutes(dao: Dao) {
                 return@post
             }
 
+            // TODO need to not read this into RAM
             val fileBytes = fileItem!!.streamProvider().readBytes()
             val originalFileName = fileItem!!.originalFileName ?: "unknown_file"
             val fileExtension = originalFileName.substringAfterLast('.', "")
@@ -114,7 +114,7 @@ fun Route.assetRoutes(dao: Dao) {
             }
 
             // Create asset record in DB first
-            val assetId = dao.createAsset(
+            val asset = dao.addNewAsset(
                 assetName = assetName!!,
                 link = link,
                 storeName = storeName,
@@ -124,12 +124,12 @@ fun Route.assetRoutes(dao: Dao) {
                 projectsString = projectsString
             )
 
-            if (assetId == null) {
+            if (asset == null) {
                 call.respond(HttpStatusCode.InternalServerError, "Failed to create asset record.")
                 return@post
             }
 
-            val assetUploadDir = File(UPLOAD_DIR, assetId.toString())
+            val assetUploadDir = File(UPLOAD_DIR, asset.toString())
             assetUploadDir.mkdirs() // Create directory for this asset's files
 
             val targetFile = File(assetUploadDir, originalFileName)
@@ -139,37 +139,37 @@ fun Route.assetRoutes(dao: Dao) {
             var previewPath: String? = null
 
             // Generate other filename-based tags for the main uploaded file (not for base tags anymore)
-            generateFilenameTags(assetId, originalFileName, dao)
+            generateFilenameTags(asset.assetId, originalFileName, dao)
 
 
             if (fileExtension == "zip") {
                 // Process ZIP file
                 // processZipFile will also add internal file entries to DB and generate tags
-                val success = processZipFile(targetFile, assetId, dao, originalFileName) // Pass original ZIP filename
+                val success = processZipFile(targetFile, asset.assetId, dao, originalFileName) // Pass original ZIP filename
                 if (success) {
-                    call.respond(HttpStatusCode.Created, "ZIP file uploaded and processed. Asset ID: $assetId")
+                    call.respond(HttpStatusCode.Created, "ZIP file uploaded and processed. Asset ID: $asset")
                 } else {
-                    call.respond(HttpStatusCode.InternalServerError, "Failed to process ZIP file. Asset ID: $assetId")
+                    call.respond(HttpStatusCode.InternalServerError, "Failed to process ZIP file. Asset ID: $asset")
                 }
             } else {
                 // Handle single file upload
                 if (fileType.startsWith("image/")) {
                     val thumbFileName = "${originalFileName.substringBeforeLast('.')}.jpg"
-                    val thumbFile = File(PREVIEW_DIR, "${assetId}_$thumbFileName")
+                    val thumbFile = File(PREVIEW_DIR, "${asset}_$thumbFileName")
                     if (generateThumbnail(targetFile, thumbFile, 200, 200)) {
-                        previewPath = "/previews/${assetId}_$thumbFileName"
+                        previewPath = "/previews/${asset}_$thumbFileName"
                     }
                 }
 
-                dao.addFileToAsset(
-                    assetId = assetId,
+                dao.addFile(
+                    assetId = asset.assetId,
                     fileName = originalFileName.substringAfterLast('/'), // Only store filename, not full path in DB
                     filePath = targetFile.absolutePath,
-                    fileSize = fileSize,
+                    fileSize = fileSize.toLong(), // TODO need to fix reading into ram like this
                     fileType = fileType,
                     previewPath = previewPath
                 )
-                call.respond(HttpStatusCode.Created, "File uploaded and details saved. Asset ID: $assetId")
+                call.respond(HttpStatusCode.Created, "File uploaded and details saved. Asset ID: $asset")
             }
         }
 
@@ -200,7 +200,7 @@ fun Route.assetRoutes(dao: Dao) {
                 return@put
             }
             val updateRequest = call.receive<UpdateAssetRequest>()
-            val message = dao.updateAssetDetails(id, updateRequest)
+            val message = dao.editAsset(id, updateRequest)
             call.respond(HttpStatusCode.OK, message)
         }
 

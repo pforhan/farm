@@ -12,6 +12,7 @@ fun Application.configureStatusPages() {
     install(StatusPages) {
         exception<Throwable> { call, cause ->
             call.application.log.error("Unhandled exception: ${cause.message}", cause)
+            cause.printStackTrace(System.out)
             val stacktrace = cause.stackTraceToString()
             call.respondText(text = "500: ${cause.message ?: "Internal Server Error"}" +
               "\n\n$stacktrace", status = HttpStatusCode.InternalServerError)

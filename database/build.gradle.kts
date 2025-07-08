@@ -20,6 +20,7 @@ dependencies {
     implementation(libs.exposed.core)
     implementation(libs.exposed.dao)
     implementation(libs.exposed.jdbc)
+    implementation(libs.exposed.r2dbc)
     implementation(libs.exposed.kotlin.datetime)
 
     // Database Driver (MySQL)
