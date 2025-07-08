@@ -9,6 +9,7 @@ import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.Transaction
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.dao.id.IntIdTable
@@ -28,31 +29,35 @@ object Dao {
    * Helper to get or create an ID for related tables (Stores, Authors, Licenses, Tags, Projects).
    * This function calls `dbQuery`, so it must be a `suspend` function.
    */
-  private suspend fun getOrCreateId(table: IntIdTable, nameColumn: Column<String>, name: String?): Int? = dbQuery {
-    if (name.isNullOrBlank()) return@dbQuery null
+  private fun Transaction.getOrCreateId(table: IntIdTable, nameColumn: Column<String>, name: String?): Int? {
+    if (name.isNullOrBlank()) return null
 
-    table.select(table.columns)
+    val extantOrNull = table.select(table.columns)
       .where { nameColumn eq name }
       .map { it[table.id].value }
-      .singleOrNull() ?: table.insert { it[nameColumn] = name }[table.id].value
+      .singleOrNull()
+    return extantOrNull ?: table.insert { it[nameColumn] = name }[table.id].value
   }
 
   /**
    * Helper to add tags/projects to an asset.
-   * This function calls `dbQuery`, so it must be a `suspend` function.
    */
-  private suspend fun addAssociation(assetId: Int, itemId: Int?, associationTable: Table, assetIdColumn: Column<EntityID<Int>>, itemIdColumn: Column<EntityID<Int>>) {
+  private fun Transaction.addAssociation(
+    assetId: Int,
+    itemId: Int?,
+    associationTable: Table,
+    assetIdColumn: Column<EntityID<Int>>,
+    itemIdColumn: Column<EntityID<Int>>
+  ) {
     if (itemId != null) {
-      dbQuery {
-        // Check if association already exists to prevent duplicates
-        val existing = associationTable.select(associationTable.columns)
-          .where { (assetIdColumn eq assetId) and (itemIdColumn eq itemId) }
-          .count()
-        if (existing == 0L) {
-          associationTable.insert {
-            it[assetIdColumn] = EntityID(assetId, Assets) // Correctly wrap Int in EntityID
-            it[itemIdColumn] = EntityID(itemId, Tags) // Or Projects, depending on context
-          }
+      // Check if association already exists to prevent duplicates
+      val existing = associationTable.select(associationTable.columns)
+        .where { (assetIdColumn eq assetId) and (itemIdColumn eq itemId) }
+        .count()
+      if (existing == 0L) {
+        associationTable.insert {
+          it[assetIdColumn] = EntityID(assetId, Assets) // Correctly wrap Int in EntityID
+          it[itemIdColumn] = EntityID(itemId, Tags) // Or Projects, depending on context
         }
       }
     }
@@ -112,7 +117,7 @@ object Dao {
    * Adds tags and projects to a given asset.
    * This function calls other `suspend` helper functions, so it must be `suspend`.
    */
-  private suspend fun addTagsAndProjects(assetId: Int, tagsString: String?, projectsString: String?) = dbQuery {
+  private fun Transaction.addTagsAndProjects(assetId: Int, tagsString: String?, projectsString: String?) {
     tagsString?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() }?.forEach { tagName ->
       val tagId = getOrCreateId(Tags, Tags.tagName, tagName)
       addAssociation(assetId, tagId, AssetTags, AssetTags.asset, AssetTags.tag) // Pass correct columns
@@ -123,15 +128,22 @@ object Dao {
     }
   }
 
+  /**
+   * Fetches an asset by ID within an existing transaction.
+   * This is a private helper to avoid nested transactions when called internally.
+   */
+  private fun Transaction.fetchAssetById(id: Int): Asset? =
+    Assets.selectAll()
+      .where { Assets.id eq id } // Use .id for IntIdTable
+      .map(::resultRowToAsset)
+      .singleOrNull()
+
   suspend fun allAssets(): List<Asset> = dbQuery {
     Assets.selectAll().map(::resultRowToAsset)
   }
 
   suspend fun asset(id: Int): Asset? = dbQuery {
-    Assets.selectAll()
-      .where { Assets.id eq id } // Use .id for IntIdTable
-      .map(::resultRowToAsset)
-      .singleOrNull()
+    fetchAssetById(id) // Use the internal transaction-aware version
   }
 
   suspend fun addNewAsset(
@@ -157,10 +169,10 @@ object Dao {
       }
       val newAssetId = newAssetEntity.id.value
 
-      // Add tags and projects
+      // Add tags and projects within the same transaction
       addTagsAndProjects(newAssetId, tagsString, projectsString)
 
-      asset(newAssetId) // Fetch the newly created asset with all its details
+      fetchAssetById(newAssetId) // Fetch the newly created asset with all its details within the same transaction
     }
   }
 

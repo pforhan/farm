@@ -9,7 +9,6 @@ import org.jetbrains.exposed.v1.core.Transaction
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
 
 object DatabaseFactory {
 
@@ -80,10 +79,10 @@ object DatabaseFactory {
   }
 
   // Helper function for performing database queries within a coroutine context
-  suspend fun <T> dbQuery(block: suspend Transaction.() -> T): T =
+  suspend fun <T> dbQuery(block: Transaction.() -> T): T =
   // Dispatches the database operation to an IO-bound thread pool
     // This prevents blocking the main event loop in Ktor.
     withContext(Dispatchers.IO) {
-      suspendTransaction { block() }
+      transaction { block() }
     }
 }
