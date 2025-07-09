@@ -2,7 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom font setup */
+/* You can add custom global styles here if needed */
 body {
   font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
