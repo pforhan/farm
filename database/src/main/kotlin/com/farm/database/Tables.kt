@@ -7,7 +7,7 @@ import org.jetbrains.exposed.v1.core.dao.id.IntIdTable
 import org.jetbrains.exposed.v1.dao.IntEntity
 import org.jetbrains.exposed.v1.dao.IntEntityClass
 
-object Assets : IntIdTable("assets") {
+object Assets : IntIdTable("assets", "asset_id") {
     val assetName = varchar("asset_name", 255)
     val link = varchar("link", 255).nullable()
     val store = reference("store_id", Stores).nullable() // Reference to Stores table
@@ -15,7 +15,8 @@ object Assets : IntIdTable("assets") {
     val license = reference("license_id", Licenses).nullable() // Reference to Licenses table
 }
 
-object Files : IntIdTable("files") {
+// Corrected to specify the actual primary key column name from the database schema
+object Files : IntIdTable("files", "file_id") {
     val asset = reference("asset_id", Assets) // Reference to Assets table
     val fileName = varchar("file_name", 255)
     val filePath = varchar("file_path", 255)
@@ -66,10 +67,6 @@ class AssetEntity(id: EntityID<Int>) : IntEntity(id) {
     var store by StoreEntity optionalReferencedOn Assets.store
     var author by AuthorEntity optionalReferencedOn Assets.author
     var license by LicenseEntity optionalReferencedOn Assets.license
-
-    // Relationships for tags and projects are handled via many-to-many tables,
-    // so we'll fetch them separately or via join queries.
-    // Files are also handled separately for now.
 }
 
 class FileEntity(id: EntityID<Int>) : IntEntity(id) {
