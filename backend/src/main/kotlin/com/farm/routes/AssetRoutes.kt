@@ -23,7 +23,7 @@ import java.util.UUID
 // Constants for file storage
 val UPLOAD_DIR = Paths.get(System.getProperty("user.dir"), "public", "uploads").toFile()
 val PREVIEW_DIR = Paths.get(System.getProperty("user.dir"), "public", "previews").toFile()
-private const val MAX_FILE_SIZE = 200L * 1024L * 1024L // 200MB
+private const val MAX_FILE_SIZE = 800L * 1024L * 1024L // 800MB
 val ALLOWED_EXTENSIONS = setOf("zip", "png", "jpg", "jpeg", "gif", "wav", "mp3", "ogg", "txt", "md", "html", "json", "xml")
 
 fun Route.assetRoutes(dao: Dao) {
