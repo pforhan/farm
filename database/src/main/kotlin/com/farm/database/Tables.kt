@@ -7,7 +7,7 @@ import org.jetbrains.exposed.v1.core.dao.id.IntIdTable
 import org.jetbrains.exposed.v1.dao.IntEntity
 import org.jetbrains.exposed.v1.dao.IntEntityClass
 
-object Assets : IntIdTable("assets", "asset_id") {
+object Assets : IntIdTable("assets") {
     val assetName = varchar("asset_name", 255)
     val link = varchar("link", 255).nullable()
     val store = reference("store_id", Stores).nullable() // Reference to Stores table
@@ -15,8 +15,7 @@ object Assets : IntIdTable("assets", "asset_id") {
     val license = reference("license_id", Licenses).nullable() // Reference to Licenses table
 }
 
-// Corrected to specify the actual primary key column name from the database schema
-object Files : IntIdTable("files", "file_id") {
+object Files : IntIdTable("files") {
     val asset = reference("asset_id", Assets) // Reference to Assets table
     val fileName = varchar("file_name", 255)
     val filePath = varchar("file_path", 255)
