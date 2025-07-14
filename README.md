@@ -11,7 +11,7 @@ Farm is a simple, open-source web application for tracking and managing your dig
 * **Flexible Organization:** Categorize assets with zero or more tags and associate them with zero or more projects.
 * **File Management:** Upload individual files or zip archives.
 * **Automatic Extraction:** Zip files are automatically extracted, and their contents are individually tracked.
-* **Enhanced Tagging:**
+* **Enhanced Tagging (TODO):**
     * Automatically tags assets based on the uploaded zip filename and source URL.
     * Extracts additional tags from directory names within uploaded zip archives (e.g., `20x20/static` will add "20x20" and "static" as tags).
 * **Media Previews:** View previews of image files (JPG, PNG, GIF) and play audio files (WAV, MP3, OGG).
@@ -65,14 +65,7 @@ This is the recommended way to run Farm, providing a consistent and isolated env
 
 **Steps:**
 
-1.  **Clone the repository (or create the directory manually):**
-    ```bash
-    git clone [your-repo-url] farm
-    cd farm
-    ```
-    If not using Git, manually create a directory named `farm` and populate it with the files from the project structure above.
-
-2.  **Create the `.env` file:**
+1.  **Create the `.env` file:**
     Create a file named `.env` in the `farm/` directory (at the same level as `docker-compose.yml`) and add your database credentials. **Do not commit this file to version control.**
 
     ```dotenv
@@ -85,14 +78,14 @@ This is the recommended way to run Farm, providing a consistent and isolated env
     ```
     **Remember to replace `your_root_password_here`, `your_farm_db_name`, `your_farm_db_user`, and `your_farm_db_password` with strong, unique values. Pay special attention to matching `MYSQL_USER` and `MYSQL_PASSWORD` if you're using names like `farm_user_dev`.**
 
-3.  **Run the initial setup for host directories:**
+2.  **Run the initial setup for host directories:**
     While Docker volumes handle persistence, it's good practice to create these on the host. From your `farm` directory, run:
     ```bash
     mkdir -p public/uploads public/previews var/logs var/cache
     chmod -R 777 public/uploads public/previews var/logs var/cache
     ```
 
-4.  **Build and start the Docker services:**
+3.  **Build and start the Docker services:**
     From your `farm` project root directory, run:
     ```bash
     docker compose up --build -d
@@ -109,7 +102,7 @@ This is the recommended way to run Farm, providing a consistent and isolated env
     * **Automatically initialize the MySQL database** by importing `docs/database.sql` on the *first run* of the `db` service.
     * Set up networking between the containers.
 
-5.  **Access the application:**
+4.  **Access the application:**
     Open your web browser and navigate to `http://localhost:6118` (or the `APP_PORT` you defined in your `.env` file).
 
 **To stop and remove containers (and networks/volumes by default):**
@@ -128,7 +121,7 @@ docker compose down
 
 ## Contributing
 
-Contributions are welcome! Please feel to open a bug report, suggest a feature, or submit a pull request.
+Contributions are welcome! Please feel to open a bug report, suggest a feature, or submit a pull request. Check out [TODO](TODO.md) for some next steps.
 
 ## License
 
