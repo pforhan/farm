@@ -4,6 +4,8 @@
 
 Farm is a simple, open-source web application for tracking and managing your digital assets. It features a **Kotlin Ktor backend** for robust API services and a **React/TypeScript frontend** for a dynamic user interface. This combination provides a modern, high-performance solution for organizing assets by store/source, author, license, tags, and projects, and includes capabilities to upload files (including zip archives), preview graphics, and play audio.
 
+<img width="925" height="462" alt="screenshot" src="https://github.com/user-attachments/assets/dce38df5-a129-434b-93b2-6aab48558255" />
+
 ## Features
 
 * **Modern Stack:** Built with Kotlin Ktor on the backend and React/TypeScript with Tailwind CSS on the frontend.
